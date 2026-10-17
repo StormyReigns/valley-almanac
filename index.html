@@ -1,0 +1,2111 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#8a4b1c"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="default"><meta name="apple-mobile-web-app-title" content="Almanac"><link rel="apple-touch-icon" href="icon-180.png"><link rel="icon" type="image/png" href="icon-192.png"><link rel="manifest" href="manifest.webmanifest"><style>[hidden]{display:none!important}body{margin:0}img{max-width:100%}</style></head><body><title>Valley Almanac</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="description" content="A pocket companion for Stardew Valley that follows your in-game date.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@500;700&family=Nunito:wght@400;600;700;800&display=swap">
+<style>
+/* Layout: a wooden menu over the valley sky. Sticky plank header with the in-game date and search,
+   parchment panels framed in wood, and a hotbar of square slots for the sections. */
+:root {
+  --sky-top: #a7d6e6; --sky-bot: #dcefd9;
+  --paper: #fce6b4; --paper-2: #f4cf8d; --paper-line: #dfae63;
+  --wood: #8a4b1c; --wood-hi: #d48a3b; --wood-dk: #4b240b; --plank-ink: #fff1d2;
+  --ink: #3b200c; --ink-2: #74512d;
+  --sp: #3d8622; --su: #a87200; --fa: #b0480f; --wi: #2b6ca6;
+  --love: #c42d60; --good: #357a26; --bad: #ad3427; --warn: #a65f00; --slot-sel: #d33b2c;
+  --on-acc: #fffaf0; --focus: #1d5d98; --veil: rgba(40, 20, 5, .42);
+  --f-display: 'Pixelify Sans', 'Courier New', ui-monospace, monospace;
+  --f-body: 'Nunito', ui-rounded, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --acc: var(--sp);
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --sky-top: #0c1326; --sky-bot: #1c2240;
+  --paper: #2a2337; --paper-2: #362c46; --paper-line: #4d3f60;
+  --wood: #6e3d1b; --wood-hi: #b97a3a; --wood-dk: #07060d; --plank-ink: #fbe9c6;
+  --ink: #f4e5c6; --ink-2: #bba98a;
+  --sp: #86cc63; --su: #f0c44d; --fa: #f0915a; --wi: #88bff0;
+  --love: #ff86ad; --good: #8fd27d; --bad: #ff9283; --warn: #ffbb55; --slot-sel: #ff6a55;
+  --on-acc: #1b1526; --focus: #a6d4ff; --veil: rgba(3, 2, 8, .6);
+  color-scheme: dark;
+} }
+:root[data-theme="dark"] {
+  --sky-top: #0c1326; --sky-bot: #1c2240;
+  --paper: #2a2337; --paper-2: #362c46; --paper-line: #4d3f60;
+  --wood: #6e3d1b; --wood-hi: #b97a3a; --wood-dk: #07060d; --plank-ink: #fbe9c6;
+  --ink: #f4e5c6; --ink-2: #bba98a;
+  --sp: #86cc63; --su: #f0c44d; --fa: #f0915a; --wi: #88bff0;
+  --love: #ff86ad; --good: #8fd27d; --bad: #ff9283; --warn: #ffbb55; --slot-sel: #ff6a55;
+  --on-acc: #1b1526; --focus: #a6d4ff; --veil: rgba(3, 2, 8, .6);
+  color-scheme: dark;
+}
+body[data-season="Summer"] { --acc: var(--su); }
+body[data-season="Fall"] { --acc: var(--fa); }
+body[data-season="Winter"] { --acc: var(--wi); }
+
+* { box-sizing: border-box; }
+html { background: var(--sky-bot); }
+body {
+  margin: 0; min-height: 100vh; font: 16px/1.5 var(--f-body); color: var(--ink);
+  background-color: var(--sky-bot);
+  background-image: linear-gradient(180deg, var(--sky-top) 0, var(--sky-bot) 520px);
+  background-attachment: fixed;
+  -webkit-font-smoothing: antialiased;
+}
+body.sheet-open { overflow: hidden; }
+button, input, select { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+h1, h2, h3, h4 { font-family: var(--f-display); font-weight: 700; line-height: 1.15; text-wrap: balance; margin: 0; letter-spacing: .01em; }
+h2 { font-size: 1.5rem; } h3 { font-size: 1.15rem; display: flex; gap: 8px; align-items: center; } h4 { font-size: 1rem; margin: 16px 0 8px; }
+p { margin: 8px 0; }
+.pix { display: inline-block; vertical-align: -2px; flex: none; }
+.muted { color: var(--ink-2); } .small { font-size: .875rem; } .big { font-size: 1.1rem; }
+.good { color: var(--good); } .bad { color: var(--bad); }
+.eyebrow { font-size: .75rem; letter-spacing: .12em; text-transform: uppercase; font-weight: 800; color: var(--ink-2); }
+
+/* ---------- Header plank ---------- */
+.top {
+  position: sticky; top: env(safe-area-inset-top, 0px); z-index: 20;
+  background-color: var(--wood);
+  background-image: repeating-linear-gradient(0deg, transparent 0 9px, rgba(0,0,0,.09) 9px 10px), linear-gradient(180deg, rgba(255,255,255,.08), rgba(0,0,0,.12));
+  border-bottom: 4px solid var(--wood-dk); box-shadow: inset 0 -2px 0 var(--wood-hi);
+  color: var(--plank-ink);
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 8px 10px;
+}
+.top-in { max-width: 1100px; margin: 0 auto; display: grid; gap: 8px; }
+.row1 { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.brand { font-family: var(--f-display); font-size: 1.25rem; font-weight: 700; margin-right: auto; display: flex; align-items: center; gap: 8px; color: var(--plank-ink); text-shadow: 0 2px 0 var(--wood-dk); }
+.brand .pix { color: var(--acc); filter: drop-shadow(0 2px 0 var(--wood-dk)); }
+.datebar { display: flex; align-items: stretch; gap: 4px; }
+.pbtn {
+  background: var(--paper); color: var(--ink); border: 2px solid var(--wood-dk); border-radius: 4px;
+  box-shadow: inset 0 -3px 0 var(--paper-2); padding: 4px 10px; min-height: 40px; display: inline-flex; align-items: center; gap: 6px;
+}
+.pbtn:active { box-shadow: inset 0 2px 0 var(--paper-2); }
+.arrow { font-family: var(--f-display); font-size: 1.3rem; padding: 0 10px; }
+#dateBtn { flex-direction: column; align-items: flex-start; justify-content: center; gap: 0; line-height: 1.1; min-width: 118px; }
+#dMain { font-family: var(--f-display); font-weight: 700; font-size: 1.05rem; color: var(--acc); }
+#dSub { font-size: .75rem; color: var(--ink-2); font-weight: 700; }
+#wxBtn[aria-pressed="true"] { color: var(--wi); }
+#wxBtn .pix { color: var(--su); } #wxBtn[aria-pressed="true"] .pix { color: var(--wi); }
+#hourSel { appearance: none; -webkit-appearance: none; color: var(--ink); background: var(--paper); border: 2px solid var(--wood-dk); border-radius: 4px; box-shadow: inset 0 -3px 0 var(--paper-2); min-height: 40px; padding: 4px 26px 4px 10px; font-weight: 700; font-size: .9rem;
+  background-image: linear-gradient(45deg, transparent 50%, var(--ink) 50%), linear-gradient(135deg, var(--ink) 50%, transparent 50%); background-position: calc(100% - 14px) 50%, calc(100% - 9px) 50%; background-size: 5px 5px; background-repeat: no-repeat; }
+.searchwrap { position: relative; }
+.searchwrap .pix { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--ink-2); pointer-events: none; }
+#q {
+  width: 100%; min-height: 46px; padding: 10px 44px 10px 40px; font-size: 1rem; font-weight: 600;
+  background: var(--paper); color: var(--ink); border: 3px solid var(--wood-dk); border-radius: 4px; box-shadow: inset 0 3px 0 var(--paper-2);
+}
+#q::-webkit-search-cancel-button { -webkit-appearance: none; display: none; }
+#q:placeholder-shown ~ .clearq { display: none; }
+#q::placeholder { color: var(--ink-2); font-weight: 600; }
+#q:focus { outline: 3px solid var(--acc); outline-offset: 1px; }
+.clearq { position: absolute; right: 6px; top: 50%; transform: translateY(-50%); background: transparent; border: 0; padding: 8px; color: var(--ink-2); }
+
+/* ---------- Hotbar ---------- */
+.hotbar {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 25;
+  padding-left: max(8px, env(safe-area-inset-left, 0px)); padding-right: max(8px, env(safe-area-inset-right, 0px)); padding-top: 6px; padding-bottom: calc(6px + env(safe-area-inset-bottom, 0px));
+  background-color: var(--wood); border-top: 4px solid var(--wood-dk); box-shadow: inset 0 2px 0 var(--wood-hi);
+}
+.slots { max-width: 560px; margin: 0 auto; display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
+.tabbtn {
+  aspect-ratio: auto; min-height: 56px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px;
+  background: var(--paper-2); color: var(--ink); border: 2px solid var(--wood-dk); border-radius: 3px; box-shadow: inset 0 0 0 2px var(--paper-line);
+  font-size: .72rem; font-weight: 800; letter-spacing: .02em; padding: 4px 2px;
+}
+.tabbtn .pix { color: var(--ink-2); }
+.tabbtn[aria-current="page"] { background: var(--paper); box-shadow: inset 0 0 0 3px var(--slot-sel); }
+.tabbtn[aria-current="page"] .pix { color: var(--acc); }
+
+/* ---------- Main ---------- */
+main, #results {
+  max-width: 1100px; margin: 0 auto;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 16px calc(96px + env(safe-area-inset-bottom, 0px));
+  display: grid; gap: 16px; align-content: start;
+}
+.panel {
+  background: var(--paper); border: 3px solid var(--wood); border-radius: 5px;
+  box-shadow: inset 0 0 0 2px var(--wood-hi), 0 4px 0 var(--wood-dk);
+  padding: 14px 16px 16px; min-width: 0;
+}
+.panel > h3 { margin-bottom: 8px; }
+.grid2 { display: grid; gap: 16px; grid-template-columns: minmax(0, 1fr); }
+@media (min-width: 760px) { .grid2 { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); } }
+.room-h { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+
+.today { border-color: var(--wood); background-image: linear-gradient(90deg, var(--acc) 0 6px, transparent 6px); padding-left: 22px; }
+.today-head { display: flex; gap: 12px; align-items: flex-start; justify-content: space-between; flex-wrap: wrap; }
+.today-head h2 { font-size: 1.75rem; color: var(--acc); }
+.today-head h2 .sub { display: block; font-family: var(--f-body); font-size: .95rem; font-weight: 700; color: var(--ink-2); margin-top: 2px; }
+.today-list { list-style: none; margin: 12px 0 0; padding: 0; display: grid; gap: 8px; }
+.today-list li { padding: 8px 10px; border-radius: 4px; background: var(--paper-2); line-height: 1.45; }
+.today-list li.hl.bday { background: color-mix(in srgb, var(--love) 14%, var(--paper)); }
+.today-list li.hl.fest { background: color-mix(in srgb, var(--acc) 18%, var(--paper)); }
+.today-list li.hl.warn { background: color-mix(in srgb, var(--warn) 18%, var(--paper)); }
+.today-list .chips { display: inline-flex; margin-left: 4px; vertical-align: middle; }
+.firstrun { margin-top: 12px; padding: 12px; border: 2px dashed var(--acc); border-radius: 4px; display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+.firstrun p { margin: 0; flex: 1 1 240px; }
+
+.uplist { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
+.uplist li { display: flex; gap: 10px; align-items: baseline; padding: 6px 0; border-bottom: 1px dashed var(--paper-line); }
+.uplist li:last-child { border-bottom: 0; }
+.when { flex: none; width: 84px; font-weight: 800; font-size: .85rem; color: var(--ink-2); font-variant-numeric: tabular-nums; }
+
+.plantlist, .flist, .shoplist { list-style: none; margin: 0; padding: 0; }
+.plantlist li, .flist li, .shoplist li { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; padding: 7px 0; border-bottom: 1px dashed var(--paper-line); }
+.plantlist li:last-child, .flist li:last-child, .shoplist li:last-child { border-bottom: 0; }
+.plantlist .meta { color: var(--ink-2); font-size: .875rem; }
+.plantlist .pill { margin-left: auto; }
+.flist .meta { color: var(--ink-2); font-size: .875rem; flex: 1 1 200px; }
+.flist .src { font-size: .8rem; color: var(--ink-2); flex-basis: 100%; }
+.shoplist li { justify-content: space-between; }
+.locrow { display: grid; grid-template-columns: minmax(0, 1fr); gap: 4px; padding: 6px 0; border-bottom: 1px dashed var(--paper-line); }
+.locrow:last-child { border-bottom: 0; }
+.loc { font-weight: 800; font-size: .85rem; color: var(--ink-2); }
+
+/* chips & pills */
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip {
+  display: inline-flex; align-items: center; gap: 4px; min-height: 32px; padding: 3px 10px; border-radius: 4px;
+  background: var(--paper-2); border: 2px solid var(--paper-line); color: var(--ink); font-weight: 700; font-size: .9rem; line-height: 1.2; text-align: left;
+}
+button.chip:hover { border-color: var(--wood-hi); }
+.chip.plain { font-weight: 600; font-style: italic; }
+.chip.now::after { content: ''; width: 7px; height: 7px; border-radius: 1px; background: var(--acc); margin-left: 2px; }
+.chip.love { border-color: color-mix(in srgb, var(--love) 55%, var(--paper-line)); }
+.chip.bad { border-color: color-mix(in srgb, var(--bad) 45%, var(--paper-line)); }
+.chip.link { background: none; border: 0; padding: 0; min-height: 0; font-size: inherit; color: inherit; text-decoration: underline; text-decoration-style: dotted; text-decoration-color: var(--acc); text-underline-offset: 3px; text-decoration-thickness: 2px; font-weight: 800; }
+.chip.link.now::after { display: none; }
+.pill { display: inline-block; font-size: .75rem; font-weight: 800; padding: 1px 8px; border-radius: 999px; background: color-mix(in srgb, var(--good) 18%, var(--paper)); color: var(--good); white-space: nowrap; }
+.pill.soft { background: var(--paper-2); color: var(--ink-2); }
+.pill.warn { background: color-mix(in srgb, var(--warn) 20%, var(--paper)); color: var(--warn); }
+.pill.hot { background: var(--love); color: var(--on-acc); }
+.stag { display: inline-block; font-size: .72rem; font-weight: 800; padding: 1px 7px; border-radius: 3px; margin-right: 4px; color: var(--on-acc); }
+.stag.c-spring { background: var(--sp); } .stag.c-summer { background: var(--su); } .stag.c-fall { background: var(--fa); } .stag.c-winter { background: var(--wi); }
+.stag.any { background: var(--paper-2); color: var(--ink-2); }
+.dot { display: inline-block; width: 9px; height: 9px; border-radius: 1px; margin-left: 4px; vertical-align: 0; }
+.dot.c-spring { background: var(--sp); } .dot.c-summer { background: var(--su); } .dot.c-fall { background: var(--fa); } .dot.c-winter { background: var(--wi); }
+
+.btn { background: var(--acc); color: var(--on-acc); border: 2px solid var(--wood-dk); border-radius: 4px; box-shadow: inset 0 -3px 0 rgba(0,0,0,.2); padding: 8px 14px; font-weight: 800; min-height: 40px; }
+.btn.small { padding: 4px 12px; min-height: 34px; font-size: .9rem; }
+.btn.ghost { background: var(--paper-2); color: var(--ink); }
+.btn.danger { background: var(--bad); color: var(--on-acc); }
+
+/* calendar */
+.cal { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px; }
+.cal-h { font-size: .7rem; font-weight: 800; text-transform: uppercase; letter-spacing: .08em; color: var(--ink-2); text-align: center; padding-bottom: 2px; }
+.cal-d { min-height: 58px; min-width: 0; display: flex; flex-direction: column; align-items: stretch; gap: 2px; padding: 3px; text-align: left; background: var(--paper-2); border: 2px solid transparent; border-radius: 3px; overflow: hidden; }
+.cal-d .n { font-family: var(--f-display); font-weight: 700; font-size: .95rem; line-height: 1; font-variant-numeric: tabular-nums; }
+.cal-d.sel { background: var(--paper); border-color: var(--slot-sel); }
+.cal-d .m { font-size: .62rem; font-weight: 800; line-height: 1.15; border-radius: 2px; padding: 1px 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cal-d .m.fest { background: var(--acc); color: var(--on-acc); }
+.cal-d .m.bday { background: color-mix(in srgb, var(--love) 22%, var(--paper)); color: var(--ink); }
+.cal-d .m.ev { background: color-mix(in srgb, var(--ink-2) 18%, var(--paper)); color: var(--ink); }
+@media (max-width: 480px) { .cal-d { min-height: 50px; } .cal-d .m { font-size: 0; height: 6px; padding: 0; } }
+
+/* bundles */
+.bar { height: 10px; background: var(--paper-2); border: 2px solid var(--wood-dk); border-radius: 2px; overflow: hidden; margin: 6px 0 4px; }
+.bar span { display: block; height: 100%; background: var(--acc); }
+.bar.big { height: 14px; margin: 10px 0; }
+.bundles { display: grid; gap: 12px; grid-template-columns: minmax(0, 1fr); margin-top: 8px; }
+@media (min-width: 760px) { .bundles { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); } }
+.bundle { background: var(--paper-2); border-radius: 4px; padding: 10px 12px; min-width: 0; }
+.bundle.done { opacity: .78; }
+.bundle-h { display: flex; justify-content: space-between; gap: 8px; align-items: baseline; flex-wrap: wrap; }
+.bundle-h h4 { margin: 0; }
+.count { font-weight: 800; font-size: .85rem; font-variant-numeric: tabular-nums; }
+.reward { font-size: .8rem; color: var(--ink-2); margin: 6px 0 0; }
+.items { list-style: none; margin: 6px 0 0; padding: 0; display: grid; gap: 2px; }
+.it { display: flex; gap: 10px; align-items: flex-start; padding: 6px 0; border-bottom: 1px dashed var(--paper-line); }
+.it:last-child { border-bottom: 0; }
+.it.got .it-name { text-decoration: line-through; text-decoration-color: var(--ink-2); opacity: .7; }
+.it-main { min-width: 0; flex: 1; }
+.it-name { font-weight: 700; display: flex; flex-wrap: wrap; gap: 4px; align-items: center; }
+.it-how { font-size: .8rem; color: var(--ink-2); line-height: 1.35; }
+.qty, .qual { font-size: .78rem; font-weight: 800; color: var(--ink-2); }
+.qual { color: var(--su); }
+.bname { font-weight: 800; color: var(--ink-2); font-size: .85rem; }
+.check { position: relative; flex: none; width: 28px; height: 28px; margin-top: -2px; }
+.check input { position: absolute; inset: 0; opacity: 0; margin: 0; cursor: pointer; }
+.check .box { position: absolute; inset: 0; border: 3px solid var(--wood); border-radius: 3px; background: var(--paper); box-shadow: inset 0 2px 0 var(--paper-2); pointer-events: none; }
+.check input:checked + .box { background: var(--acc); border-color: var(--wood-dk); }
+.check input:checked + .box::after { content: ''; position: absolute; left: 7px; top: 2px; width: 7px; height: 13px; border: solid var(--on-acc); border-width: 0 4px 4px 0; transform: rotate(45deg); }
+.check input:focus-visible + .box { outline: 3px solid var(--focus); outline-offset: 2px; }
+.toggle { display: flex; gap: 10px; align-items: center; font-weight: 700; margin: 8px 0; cursor: pointer; }
+.toggle input { width: 20px; height: 20px; accent-color: var(--acc); flex: none; }
+
+/* segmented */
+.segs { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0; }
+.seg { background: var(--paper-2); border: 2px solid var(--paper-line); border-radius: 4px; padding: 5px 12px; font-weight: 800; font-size: .9rem; min-height: 36px; }
+.seg.on { background: var(--acc); color: var(--on-acc); border-color: var(--wood-dk); }
+.segs.seasons .seg.on.c-spring { background: var(--sp); } .segs.seasons .seg.on.c-summer { background: var(--su); } .segs.seasons .seg.on.c-fall { background: var(--fa); } .segs.seasons .seg.on.c-winter { background: var(--wi); }
+
+/* people */
+.people { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; grid-template-columns: minmax(0, 1fr); }
+@media (min-width: 680px) { .people { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (min-width: 1000px) { .people { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+.person { width: 100%; text-align: left; display: grid; gap: 2px; padding: 10px 12px; background: var(--paper-2); border: 2px solid transparent; border-radius: 4px; }
+.person:hover { border-color: var(--wood-hi); }
+.pname { font-family: var(--f-display); font-weight: 700; font-size: 1.1rem; display: flex; align-items: center; gap: 6px; }
+.heart { color: var(--love); display: inline-flex; }
+.pbday { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+.ploves { font-size: .82rem; color: var(--ink-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* tables */
+.tablewrap { overflow-x: auto; margin: 4px -4px 0; padding: 0 4px; }
+.tbl { width: 100%; border-collapse: collapse; font-size: .92rem; }
+.tbl th { text-align: left; font-size: .72rem; text-transform: uppercase; letter-spacing: .08em; color: var(--ink-2); padding: 6px 8px; border-bottom: 2px solid var(--paper-line); white-space: nowrap; }
+.tbl td { padding: 7px 8px; border-bottom: 1px dashed var(--paper-line); vertical-align: top; }
+.tbl .num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.sub-h { margin: 18px 0 6px; }
+
+/* guides */
+.guides { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; grid-template-columns: minmax(0, 1fr); }
+@media (min-width: 680px) { .guides { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.guide { width: 100%; text-align: left; display: flex; justify-content: space-between; gap: 8px; align-items: center; padding: 10px 12px; background: var(--paper-2); border: 2px solid transparent; border-radius: 4px; font-weight: 800; }
+.guide:hover { border-color: var(--wood-hi); }
+.steps { margin: 8px 0; padding-left: 22px; display: grid; gap: 6px; }
+.steps.small { font-size: .9rem; }
+.reset { margin: 8px 0; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+
+/* search results */
+#results[hidden], main[hidden] { display: none !important; }
+.answer { background: var(--paper); border: 3px solid var(--wood); border-radius: 5px; box-shadow: inset 0 0 0 2px var(--wood-hi), 0 4px 0 var(--wood-dk); padding: 14px 16px; display: grid; gap: 6px; justify-items: start; min-width: 0; }
+.answer h3 { font-size: 1.4rem; color: var(--acc); }
+.answer > .chips, .answer > .uplist, .answer > .shoplist { width: 100%; }
+.keepnote { background: color-mix(in srgb, var(--warn) 16%, var(--paper)); padding: 4px 8px; border-radius: 3px; }
+.results { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.result { width: 100%; text-align: left; display: grid; grid-template-columns: auto minmax(0, 1fr); column-gap: 10px; align-items: baseline; padding: 9px 12px; background: var(--paper); border: 2px solid var(--wood); border-radius: 4px; }
+.result:hover { border-color: var(--wood-hi); }
+.rtype { grid-row: span 2; font-size: .68rem; font-weight: 800; text-transform: uppercase; letter-spacing: .08em; color: var(--on-acc); background: var(--ink-2); padding: 2px 6px; border-radius: 3px; align-self: center; }
+.rname { font-weight: 800; }
+.rsnip { font-size: .82rem; color: var(--ink-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.result.spoil .rname, .guide.spoil span:first-child { filter: blur(4px); }
+.askbox { display: grid; gap: 8px; justify-items: start; }
+.askout { background: var(--paper); border: 2px dashed var(--acc); border-radius: 4px; padding: 12px 14px; white-space: pre-wrap; width: 100%; }
+
+/* detail sheet */
+.sheet { position: fixed; inset: 0; z-index: 40; background: var(--veil); display: flex; align-items: flex-end; justify-content: center; }
+.sheet[hidden] { display: none; }
+.sheet-card {
+  width: 100%; max-height: calc(100% - 6vh - env(safe-area-inset-top, 0px)); display: flex; flex-direction: column;
+  background: var(--paper); border: 3px solid var(--wood); border-bottom: 0; border-radius: 8px 8px 0 0;
+  box-shadow: inset 0 0 0 2px var(--wood-hi), 0 -6px 0 rgba(0,0,0,.08); outline: none;
+}
+.sheet-bar { display: flex; justify-content: space-between; align-items: center; padding: 8px 10px; padding-left: max(10px, env(safe-area-inset-left, 0px)); padding-right: max(10px, env(safe-area-inset-right, 0px)); border-bottom: 2px solid var(--paper-line); }
+.sheet-bar .btn { display: inline-flex; gap: 6px; align-items: center; }
+#sheetBody { overflow-y: auto; padding-block: 12px calc(28px + env(safe-area-inset-bottom, 0px)); padding-left: max(18px, env(safe-area-inset-left, 0px)); padding-right: max(18px, env(safe-area-inset-right, 0px)); overscroll-behavior: contain; }
+@media (min-width: 900px) {
+  .sheet { justify-content: flex-end; align-items: stretch; }
+  .sheet-card { width: 460px; max-height: none; height: 100%; border-radius: 0; border-bottom: 3px solid var(--wood); border-right: 0; }
+}
+.d-head { margin-bottom: 8px; }
+.d-head h2 { font-size: 1.8rem; color: var(--acc); margin-top: 2px; }
+.facts { display: grid; gap: 6px; margin: 10px 0; }
+.facts > div { display: flex; flex-wrap: wrap; gap: 4px 8px; align-items: baseline; padding: 6px 10px; background: var(--paper-2); border-radius: 4px; }
+.facts span:first-child { font-size: .75rem; font-weight: 800; text-transform: uppercase; letter-spacing: .08em; color: var(--ink-2); min-width: 86px; }
+.diff { display: inline-block; width: 80px; height: 8px; background: var(--paper); border: 2px solid var(--wood-dk); border-radius: 2px; overflow: hidden; vertical-align: middle; }
+.diff span { display: block; height: 100%; background: var(--warn); }
+.callout { margin: 12px 0; padding: 10px 12px; border-radius: 4px; background: var(--paper-2); border-left: 5px solid var(--ink-2); }
+.callout.good { border-left-color: var(--good); }
+.callout.warn, .callout.keep { border-left-color: var(--warn); background: color-mix(in srgb, var(--warn) 12%, var(--paper)); }
+.giftrow { display: grid; gap: 4px; margin: 6px 0 10px; }
+.glabel { font-size: .75rem; font-weight: 800; text-transform: uppercase; letter-spacing: .08em; color: var(--ink-2); }
+.giftrow.love .glabel { color: var(--love); }
+details.giftrow summary { cursor: pointer; list-style-position: inside; }
+details.giftrow[open] summary { margin-bottom: 6px; }
+
+/* date picker */
+.pop { position: fixed; inset: 0; z-index: 45; background: var(--veil); display: flex; align-items: center; justify-content: center; padding: 16px; }
+.pop[hidden] { display: none; }
+.pop-card { width: 100%; max-width: 520px; background: var(--paper); border: 3px solid var(--wood); border-radius: 6px; box-shadow: inset 0 0 0 2px var(--wood-hi), 0 6px 0 var(--wood-dk); padding: 14px 16px; outline: none; max-height: 100%; overflow-y: auto; }
+.pop-h { display: flex; justify-content: space-between; align-items: center; }
+.yearrow { display: flex; align-items: center; gap: 12px; margin: 4px 0 10px; font-family: var(--f-display); }
+
+/* wide screens: hotbar moves under the header */
+@media (min-width: 900px) {
+  .hotbar { position: static; background: transparent; border: 0; box-shadow: none; padding: 16px max(16px, env(safe-area-inset-right, 0px)) 0 max(16px, env(safe-area-inset-left, 0px)); }
+  .slots { max-width: 1100px; grid-template-columns: repeat(5, minmax(0, 150px)); justify-content: start; }
+  .tabbtn { flex-direction: row; min-height: 46px; font-size: .9rem; gap: 8px; border-color: var(--wood); box-shadow: inset 0 0 0 2px var(--paper-line), 0 3px 0 var(--wood-dk); }
+  main, #results { padding-bottom: 40px; }
+}
+@media (max-width: 560px) {
+  .brand { display: none; }
+  .row1 { flex-wrap: nowrap; gap: 6px; }
+  .datebar { flex: 1; min-width: 0; }
+  #dateBtn { flex: 1; min-width: 0; padding-inline: 8px; }
+  .arrow { padding: 0 8px; }
+  #wxBtn { padding-inline: 8px; }
+  #wxBtn span { display: none; }
+  #hourSel { width: 84px; padding-left: 6px; font-size: .8rem; }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .sheet:not([hidden]) .sheet-card { animation: rise .18s ease-out; }
+  @keyframes rise { from { transform: translateY(24px); } to { transform: none; } }
+}
+</style>
+
+<header class="top">
+  <div class="top-in">
+    <div class="row1">
+      <div class="brand" data-icon="sprout" data-size="20">Valley Almanac</div>
+      <div class="datebar">
+        <button class="pbtn arrow" data-action="prevday" aria-label="Previous day">‹</button>
+        <button class="pbtn" id="dateBtn" data-action="date" aria-label="Change in-game date"><span id="dMain">Spring 1</span><span id="dSub">Mon · Year 1</span></button>
+        <button class="pbtn arrow" data-action="nextday" aria-label="Next day">›</button>
+      </div>
+      <button class="pbtn" id="wxBtn" data-action="weather" aria-label="Toggle rain" aria-pressed="false"></button>
+      <select id="hourSel" aria-label="Time of day in your game"></select>
+    </div>
+    <div class="searchwrap">
+      <span data-icon="search" data-size="16"></span>
+      <input id="q" type="search" autocomplete="off" spellcheck="false" placeholder="Ask anything: “abigail”, “purple mushroom”, “is pierre open”" aria-label="Search the almanac">
+      <button class="clearq" data-action="clear" aria-label="Clear search" data-icon="close" data-size="14"></button>
+    </div>
+  </div>
+</header>
+
+<nav class="hotbar" aria-label="Sections">
+  <div class="slots">
+    <button class="tabbtn" data-tab="today" data-icon="sun" data-size="20">Today</button>
+    <button class="tabbtn" data-tab="bundles" data-icon="star" data-size="18">Bundles</button>
+    <button class="tabbtn" data-tab="people" data-icon="heart" data-size="18">People</button>
+    <button class="tabbtn" data-tab="field" data-icon="sprout" data-size="18">Field guide</button>
+    <button class="tabbtn" data-tab="howto" data-icon="book" data-size="20">How-to</button>
+  </div>
+</nav>
+
+<div id="results" hidden aria-live="polite"></div>
+<main id="view"></main>
+
+<div class="sheet" id="sheet" hidden>
+  <div class="sheet-card" tabindex="-1" role="dialog" aria-modal="true" aria-label="Details">
+    <div class="sheet-bar">
+      <button class="btn small ghost" id="sheetBack" data-action="back" hidden data-icon="back" data-size="12">Back</button>
+      <span></span>
+      <button class="btn small ghost" data-action="close" aria-label="Close" data-icon="close" data-size="12">Close</button>
+    </div>
+    <div id="sheetBody"></div>
+  </div>
+</div>
+
+<div class="pop" id="datePop" hidden>
+  <div class="pop-card" tabindex="-1" role="dialog" aria-modal="true" aria-label="Pick your in-game date">
+    <div class="pop-h"><h3>Where are you in your game?</h3><button class="btn small ghost" data-action="closepop">Done</button></div>
+    <div id="popBody"></div>
+  </div>
+</div>
+
+<script>
+/* Valley Almanac data — Stardew Valley 1.6.
+   Gift tastes, fish, bundles, crops and recipes checked against stardewvalleywiki.com (Oct 2026). */
+
+const SEASONS = ['Spring', 'Summer', 'Fall', 'Winter'];
+const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+/* ---------- Villagers ----------
+   b: birthday, m: marriage candidate, love/like/dis/hate: ';'-separated, straight from the wiki gift table. */
+const VILLAGERS = [
+  { n: 'Abigail', b: 'Fall 13', m: 1, home: "Pierre's General Store", who: "Pierre and Caroline's adventurous daughter. Purple hair, plays the flute, loves video games and exploring the mines.", kw: 'purple hair goth gamer flute sword adventure mines pierre daughter girl',
+    love: "Amethyst;Banana Pudding;Blackberry Cobbler;Chocolate Cake;Monster Compendium;Pufferfish;Pumpkin;Spicy Eel", like: "Ancient Sword;Basilisk Paw;Bone Flute;Combat Quarterly;Quartz", dis: "All Eggs;All Fruit (except Fruit Tree Fruit);All Vegetables (except Hops, Pumpkin, Tea Leaves, & Wheat);Sugar;Wild Horseradish", hate: "Clay;Holly" },
+  { n: 'Alex', b: 'Summer 13', m: 1, home: '1 River Road (with George & Evelyn)', who: 'Sporty guy who dreams of playing pro gridball. Runs the ice cream stand in summer.', kw: 'jock athlete football gridball sporty ice cream stand dog dusty letterman jacket guy',
+    love: "Complete Breakfast;Jack Be Nimble, Jack Be Thick;Salmon Dinner", like: "All Eggs (except Void Egg);Dinosaur Egg;Field Snack;Parrot Egg", dis: "All Books (except Jack Be Nimble, Jack Be Thick);Salmonberry;Wild Horseradish", hate: "Holly;Quartz" },
+  { n: 'Caroline', b: 'Winter 7', home: "Pierre's General Store", who: "Pierre's wife and Abigail's mom. Green hair; grows tea in her sunroom.", kw: 'green hair tea sunroom pierre wife mom mother',
+    love: "Fish Taco;Green Tea;Summer Spangle;Tropical Curry", like: "Daffodil;Tea Leaves;Wild Horseradish", dis: "All Mushrooms (except Red);Amaranth;Dandelion;Duck Mayonnaise;Ginger;Hazelnut;Holly;Leek;Mayonnaise;Snow Yam;Winter Root", hate: "Quartz;Salmonberry" },
+  { n: 'Clint', b: 'Winter 26', home: 'Blacksmith', who: 'The blacksmith. Upgrades your tools and cracks open geodes. Shy, with a crush on Emily.', kw: 'blacksmith smith tools upgrade geode shy ore bars anvil',
+    love: "Amethyst;Aquamarine;Artichoke Dip;Emerald;Fiddlehead Risotto;Gold Bar;Iridium Bar;Jade;Omni Geode;Ruby;Topaz", like: "Copper Bar;Iron Bar;Mining Monthly", dis: "All Flowers (except Poppy);Quartz;Salmonberry;Wild Horseradish", hate: "Holly" },
+  { n: 'Demetrius', b: 'Summer 19', home: '24 Mountain Road', who: "Scientist who studies the valley's plants and animals. Robin's husband, Maru's dad.", kw: 'scientist lab researcher biologist science dad mountain',
+    love: "Bean Hotpot;Ice Cream;Rice Pudding;Strawberry", like: "All Eggs (except Void Egg);All Fruit (except Strawberry);Dinosaur Egg;Purple Mushroom", dis: "Quartz", hate: "Holly" },
+  { n: 'Dwarf', b: 'Summer 22', home: 'The Mines (entrance level, behind a rock)', who: 'A dwarf with a shop in the Mines. Break the rock in front of their shop with a steel pickaxe or a bomb. Donate all 4 Dwarf Scrolls to the museum to understand them.', kw: 'dwarf mines short shop underground translation guide dwarvish scrolls',
+    love: "Amethyst;Aquamarine;Emerald;Jade;Lava Eel;Lemon Stone;Omni Geode;Ruby;Topaz", like: "All Artifacts;Cave Carrot;Quartz", dis: "All Eggs;All Mushrooms (except Red);Daffodil;Dandelion;Ginger;Hazelnut;Holly;Leek;Salmonberry;Snow Yam;Wild Horseradish;Winter Root", hate: "" },
+  { n: 'Elliott', b: 'Fall 5', m: 1, home: "Elliott's Cabin (on the beach)", who: 'Romantic, long-haired novelist living in a cabin by the sea.', kw: 'writer author poet novel book beach cabin long hair romantic',
+    love: "Crab Cakes;Duck Feather;Lobster;Pomegranate;Squid Ink;Tom Kha Soup", like: "All Books;All Fruit (except Pomegranate & Salmonberry);Octopus;Squid", dis: "All Milk;All Mushrooms (except Red);Daffodil;Dandelion;Ginger;Hazelnut;Holly;Leek;Pizza;Snow Yam;Wild Horseradish;Winter Root", hate: "Amaranth;Quartz;Salmonberry;Sea Cucumber;Super Cucumber" },
+  { n: 'Emily', b: 'Spring 27', m: 1, home: '2 Willow Lane (with Haley)', who: "Cheerful, spiritual seamstress with blue hair. Works at the Saloon. Haley's sister; keeps a pet parrot.", kw: 'blue hair seamstress sewing crystals gems hippie spiritual parrot saloon waitress dance',
+    love: "Amethyst;Aquamarine;Cloth;Emerald;Jade;Parrot Egg;Ruby;Survival Burger;Topaz;Wool", like: "Daffodil;Quartz", dis: "Fried Eel;Ice Cream;Rice Pudding;Salmonberry;Spicy Eel", hate: "Fish Taco;Holly;Maki Roll;Salmon Dinner;Sashimi" },
+  { n: 'Evelyn', b: 'Winter 20', home: '1 River Road', who: "Sweet grandma who tends the town's flowers. Married to George; Alex's grandmother.", kw: 'granny grandma old lady flowers cookies garden grandmother',
+    love: "Beet;Chocolate Cake;Diamond;Fairy Rose;Raisins;Stuffing;Tulip", like: "All Milk;Broken Glasses;Clam;Cockle;Coral;Daffodil;Mussel;Nautilus Shell;Oyster;Sea Urchin", dis: "Quartz;Wild Horseradish", hate: "All Fish (except Clam, Cockle, Mussel, & Oyster);Clay;Fried Eel;Garlic;Holly;Maki Roll;Salmonberry;Sashimi;Spice Berry;Spicy Eel;Trout Soup" },
+  { n: 'George', b: 'Fall 24', home: '1 River Road', who: 'Grumpy grandpa in a wheelchair who loves his TV. Married to Evelyn.', kw: 'grumpy grandpa old man wheelchair tv grandfather',
+    love: "Fried Mushroom;Leek", like: "Daffodil", dis: "All Flowers (except Poppy);Salmonberry;Wild Horseradish", hate: "Clay;Dandelion;Holly;Quartz" },
+  { n: 'Gus', b: 'Summer 8', home: 'Stardrop Saloon', who: 'Friendly owner and cook of the Stardrop Saloon.', kw: 'saloon bartender chef cook bar tavern pub food',
+    love: "Diamond;Escargot;Fish Taco;Orange;Tropical Curry", like: "Daffodil;Truffle", dis: "Salmonberry;Wild Horseradish", hate: "Coleslaw;Holly;Quartz" },
+  { n: 'Haley', b: 'Spring 14', m: 1, home: '2 Willow Lane (with Emily)', who: "Fashion-minded blonde who loves photography. Emily's younger sister.", kw: 'blonde photographer camera fashion popular rich girl snobby',
+    love: "Coconut;Fruit Salad;Pink Cake;Sunflower", like: "Daffodil", dis: "All Eggs;All Fruit (except Coconut & Fruit Tree Fruit);All Milk;All Mushrooms (except Red);All Vegetables (except Hops, Tea Leaves, & Wheat);Dandelion;Ginger;Hazelnut;Holly;Leek;Mystic Syrup;Quartz;Snow Yam;Winter Root", hate: "All Fish;Clay;Prismatic Shard;Wild Horseradish" },
+  { n: 'Harvey', b: 'Winter 14', m: 1, home: 'Apartment above the Clinic', who: 'The town doctor. Gentle, a bit anxious; loves radios and model planes.', kw: 'doctor clinic medical mustache glasses planes radio',
+    love: "Coffee;Pickles;Super Meal;Truffle Oil;Wine", like: "All Fruit (except Salmonberry & Spice Berry);All Mushrooms (except Red);Daffodil;Dandelion;Duck Egg;Duck Feather;Ginger;Goat Milk;Hazelnut;Holly;Large Goat Milk;Leek;Quartz;Snow Yam;Spring Onion;Wild Horseradish;Winter Root", dis: "Blueberry Tart;Bread;Cheese;Chocolate Cake;Cookie;Cranberry Sauce;Fried Mushroom;Glazed Yams;Goat Cheese;Hashbrowns;Ice Cream;Pancakes;Pink Cake;Pizza;Rhubarb Pie;Rice Pudding", hate: "Coral;Nautilus Shell;Rainbow Shell;Salmonberry;Spice Berry" },
+  { n: 'Jas', b: 'Summer 4', home: "Marnie's Ranch", who: "Little girl who lives with her godmother Marnie. Loves jump rope and dolls.", kw: 'kid child little girl purple dress jump rope doll',
+    love: "Ancient Doll;Fairy Box;Fairy Rose;Pink Cake;Plum Pudding;Strange Doll (green);Strange Doll (yellow)", like: "All Milk;Coconut;Daffodil", dis: "All Eggs;All Fruit (except Coconut & Fruit Tree Fruit);All Mushrooms (except Red);All Vegetables (except Hops, Tea Leaves, & Wheat);Dandelion;Ginger;Hazelnut;Holly;Leek;Quartz;Snow Yam;Winter Root", hate: "All Artisan Goods (except Honey, Jelly, & Oil);Clay;Piña Colada;Triple Shot Espresso;Wild Horseradish" },
+  { n: 'Jodi', b: 'Fall 11', home: '1 Willow Lane', who: "Busy mom of Sam and Vincent. Her husband Kent is away with the army in Year 1.", kw: 'mom mother housewife busy',
+    love: "Chocolate Cake;Crispy Bass;Diamond;Eggplant Parmesan;Fried Eel;Pancakes;Rhubarb Pie;Vegetable Medley", like: "All Eggs (except Void Egg);All Fruit (except Spice Berry);All Milk", dis: "All Mushrooms (except Red);Garlic;Ginger;Hazelnut;Holly;Leek;Quartz;Snow Yam;Wild Horseradish;Winter Root", hate: "Daffodil;Dandelion;Spice Berry" },
+  { n: 'Kent', b: 'Spring 4', from: 2, home: '1 Willow Lane', who: "Jodi's husband, a soldier. Comes home in Spring of Year 2.", kw: 'soldier army veteran dad father military popcorn',
+    love: "Fiddlehead Risotto;Roasted Hazelnuts", like: "All Eggs (except Void Egg);All Fruit;Daffodil;Dwarvish Safety Manual", dis: "Piña Colada;Quartz;Snow Yam", hate: "All Milk;Algae Soup;Holly;Sashimi;Tortilla" },
+  { n: 'Krobus', b: 'Winter 1', home: 'The Sewers', who: 'A gentle shadow creature who runs a shop in the Sewers. Can become your roommate.', kw: 'shadow monster sewer creature dark ghost shop roommate black',
+    love: "Diamond;Iridium Bar;Monster Compendium;Monster Musk;Pumpkin;Void Egg;Void Mayonnaise;Wild Horseradish", like: "Gold Bar;Quartz;Seafoam Pudding;Strange Bun", dis: "All Cooking (except Bread, Fried Egg, Seafoam Pudding & Strange Bun);All Mushrooms (except Red);Daffodil;Dandelion;Ginger;Hazelnut;Holly;Leek;Life Elixir;Salmonberry;Snow Yam;Winter Root", hate: "" },
+  { n: 'Leah', b: 'Winter 23', m: 1, home: "Leah's Cottage (Cindersap Forest)", who: 'Artist and sculptor living in a cottage in the forest. Loves foraging, salads and wine.', kw: 'artist sculptor painter forest cottage braid redhead vegetarian salad wine',
+    love: "Goat Cheese;Poppyseed Muffin;Salad;Stir Fry;Truffle;Vegetable Medley;Wine", like: "All Eggs (except Void Egg);All Fruit;All Milk;All Mushrooms (except Red);Daffodil;Dandelion;Driftwood;Ginger;Hazelnut;Holly;Leek;Snow Yam;Spring Onion;Wild Horseradish;Winter Root", dis: "All Foraged Minerals (except Earth Crystal);All Gems (except Diamond & Prismatic Shard);Carp Surprise;Cookie;Fried Egg;Ice Cream;Pink Cake;Rice Pudding;Seaweed;Survival Burger;Tortilla", hate: "Bread;Hashbrowns;Pancakes;Pizza;Void Egg" },
+  { n: 'Leo', b: 'Summer 26', home: 'Ginger Island (later the valley)', who: 'A boy raised by parrots on Ginger Island.', kw: 'kid boy parrots island tropical', spoil: 1,
+    love: "Duck Feather;Mango;Ostrich Egg;Parrot Egg;Poi", like: "Dragon Tooth;Nautilus Shell;Quartz;Sea Urchin;Spice Berry", dis: "All Cooking (except Bread, Fried Egg, Mango Sticky Rice, Poi & Triple Shot Espresso);All Mushrooms (except Morel & Red);Daffodil;Dandelion;Ginger;Hazelnut;Leek;Life Elixir;Pickles;Salmonberry;Snow Yam;Wild Horseradish;Winter Root", hate: "Beer;Holly;Hops;Mead;Morel;Oil;Pale Ale;Piña Colada;Triple Shot Espresso;Unmilled Rice;Wine" },
+  { n: 'Lewis', b: 'Spring 7', home: "Mayor's Manor", who: "Pelican Town's mayor. Posts on the town bulletin board and hands out quests.", kw: 'mayor town hall manor purple shorts mustache old man',
+    love: "Autumn's Bounty;Glazed Yams;Green Tea;Hot Pepper;Vegetable Medley", like: "Blueberry;Cactus Fruit;Coconut", dis: "All Milk;Salmonberry;Wild Horseradish", hate: "Holly;Quartz" },
+  { n: 'Linus', b: 'Winter 3', home: 'Tent north of the Mountain lake', who: 'Gentle wild man who lives in a tent on the mountain. Lives off the land.', kw: 'homeless hermit tent wild man camp trash cans beard',
+    love: "Blueberry Tart;Cactus Fruit;Coconut;Dish O' The Sea;The Alleyway Buffet;Yam", like: "All Eggs (except Void Egg);All Fruit (except Cactus Fruit & Coconut);All Milk;All Mushrooms (except Red);Daffodil;Dandelion;Ginger;Hazelnut;Holly;Leek;Snow Yam;Spring Onion;Wild Horseradish;Winter Root", dis: "All Foraged Minerals;All Gems (except Diamond & Prismatic Shard);Treasure Chest", hate: "" },
+  { n: 'Marnie', b: 'Fall 18', home: "Marnie's Ranch", who: 'Runs the ranch. Sells animals, hay and animal supplies.', kw: 'rancher animals cows chickens barn coop hay ranch',
+    love: "Diamond;Farmer's Lunch;Pink Cake;Pumpkin Pie", like: "All Eggs (except Void Egg);All Milk;Stardew Valley Almanac;Quartz", dis: "Salmonberry;Seaweed;Wild Horseradish", hate: "Clay;Holly" },
+  { n: 'Maru', b: 'Summer 10', m: 1, home: '24 Mountain Road', who: 'Inventor and nurse at the clinic. Builds robots, loves the stars. Daughter of Robin and Demetrius.', kw: 'inventor robot science nurse glasses engineer telescope stars gadgets',
+    love: "Battery Pack;Cauliflower;Cheese Cauliflower;Diamond;Dwarf Gadget;Gold Bar;Iridium Bar;Miner's Treat;Pepper Poppers;Radioactive Bar;Rhubarb Pie;Strawberry", like: "All Mushrooms (except Common & Red);Copper Bar;Iron Bar;Oak Resin;Pine Tar;Quartz;Radioactive Ore", dis: "Blackberry;Common Mushroom;Crystal Fruit;Maple Syrup;Salmonberry", hate: "Holly;Honey;Pickles;Snow Yam;Truffle" },
+  { n: 'Pam', b: 'Spring 18', home: 'Trailer (by the river, with Penny)', who: "Penny's mom and the bus driver once the bus is fixed. Regular at the Saloon.", kw: 'bus driver drinker beer trailer mom mother',
+    love: "Beer;Cactus Fruit;Glazed Yams;Mead;Pale Ale;Parsnip;Parsnip Soup;Piña Colada", like: "All Fruit (except Cactus Fruit);All Milk;Daffodil", dis: "All Eggs;Quartz;Wild Horseradish", hate: "Holly;Octopus;Squid" },
+  { n: 'Penny', b: 'Fall 2', m: 1, home: 'Trailer (by the river, with Pam)', who: "Shy, kind tutor who teaches Jas and Vincent at the museum. Loves books.", kw: 'teacher tutor shy red hair books reading trailer museum library',
+    love: "All Books;Diamond;Emerald;Melon;Poppy;Poppyseed Muffin;Red Plate;Roots Platter;Sandfish;Tom Kha Soup", like: "All Artifacts;All Milk;Dandelion;Leek", dis: "Algae Soup;Duck Feather;Pale Broth;Purple Mushroom;Quartz;Red Mushroom;Salmonberry;Wool", hate: "Beer;Grape;Holly;Hops;Mead;Pale Ale;Piña Colada;Rabbit's Foot;Wine" },
+  { n: 'Pierre', b: 'Spring 26', home: "Pierre's General Store", who: 'Runs the General Store: seeds, saplings, cooking basics. Competes with JojaMart.', kw: 'shop store seeds shopkeeper general store',
+    love: "Fried Calamari;Price Catalogue", like: "All Eggs (except Void Egg);All Milk;Daffodil;Dandelion", dis: "All Foraged Minerals;All Gems (except Diamond & Prismatic Shard);All Mushrooms (except Red);Ginger;Hazelnut;Holly;Leek;Salmonberry;Snow Yam;Wild Horseradish;Winter Root", hate: "All Fish;Corn;Garlic;Parsnip Soup;Tortilla" },
+  { n: 'Robin', b: 'Fall 21', home: '24 Mountain Road (Carpenter\'s Shop)', who: 'The carpenter. Builds farm buildings and upgrades your house.', kw: 'carpenter builder red hair buildings house upgrade wood coop barn',
+    love: "Goat Cheese;Peach;Spaghetti;Woody's Secret", like: "All Fruit (except Peach);All Milk;Hardwood;Quartz;Woodcutter's Weekly", dis: "Wild Horseradish", hate: "Holly" },
+  { n: 'Sam', b: 'Summer 17', m: 1, home: '1 Willow Lane', who: 'Upbeat skateboarder with spiky blond hair. Plays in a band with Sebastian.', kw: 'skater skateboard band guitar spiky blonde hair musician guy',
+    love: "Cactus Fruit;Maple Bar;Pizza;Tigerseye", like: "All Eggs (except Void Egg);Joja Cola", dis: "All Mushrooms (except Red);All Vegetables (except Hops, Tea Leaves, & Wheat);Daffodil;Dandelion;Ginger;Hazelnut;Holly;Leek;Quartz;Salmonberry;Seaweed;Snow Yam;Wild Horseradish;Winter Root", hate: "Bone Fragment;Cinder Shard;Coal;Copper Bar;Duck Mayonnaise;Gold Bar;Gold Ore;Iridium Bar;Iridium Ore;Iron Bar;Mayonnaise;Pickles;Refined Quartz" },
+  { n: 'Sandy', b: 'Fall 15', home: 'Oasis (Calico Desert)', who: 'Runs the Oasis shop in the desert: rare seeds and clothes.', kw: 'desert oasis shop seeds starfruit rhubarb beet calico',
+    love: "Crocus;Daffodil;Mango Sticky Rice;Sweet Pea", like: "All Fruit;Goat Milk;Large Goat Milk;Quartz;Wool", dis: "", hate: "Holly" },
+  { n: 'Sebastian', b: 'Winter 10', m: 1, home: "24 Mountain Road (basement)", who: "Introverted programmer living in his mom Robin's basement. Rides a motorcycle; likes frogs and rainy days.", kw: 'emo goth programmer basement motorcycle frog dark hair hoodie moody guy',
+    love: "Frog Egg;Frozen Tear;Obsidian;Pumpkin Soup;Sashimi;Void Egg", like: "Combat Quarterly;Flounder;Monster Compendium;Quartz", dis: "All Flowers (except Poppy);All Mushrooms (except Red);Daffodil;Dandelion;Ginger;Hazelnut;Holly;Leek;Salmonberry;Snow Yam;Wild Horseradish;Winter Root", hate: "All Artisan Goods (except Coffee, Green Tea, & Oil);All Eggs (except Void Egg);Clay;Complete Breakfast;Farmer's Lunch;Omelet;Piña Colada" },
+  { n: 'Shane', b: 'Spring 20', m: 1, home: "Marnie's Ranch", who: 'Grumpy JojaMart worker living at the ranch. Secretly sweet; raises chickens.', kw: 'grumpy joja worker drinks beer chickens hoodie sad ranch guy',
+    love: "Beer;Hot Pepper;Pepper Poppers;Pizza", like: "All Eggs (except Void Egg);All Fruit (except Hot Pepper)", dis: "All Mushrooms (except Red);Daffodil;Dandelion;Ginger;Hazelnut;Holly;Leek;Seaweed;Snow Yam;Wild Horseradish;Winter Root", hate: "Pickles;Quartz" },
+  { n: 'Vincent', b: 'Spring 10', home: '1 Willow Lane', who: "Sam's little brother. Loves bugs, snails and playing with Jas.", kw: 'kid child little boy snails bugs',
+    love: "Cranberry Candy;Frog Egg;Ginger Ale;Grape;Pink Cake;Snail", like: "All Milk;Coconut;Daffodil", dis: "All Eggs;All Fruit (except Coconut, Grape & Fruit Tree Fruit);All Vegetables (except Hops, Tea Leaves, & Wheat);All Mushrooms (except Red);Dandelion;Ginger;Hazelnut;Holly;Leek;Quartz;Snow Yam;Winter Root", hate: "All Artisan Goods (except Honey, Jelly, & Oil);Clay;Piña Colada;Triple Shot Espresso;Wild Horseradish" },
+  { n: 'Willy', b: 'Summer 24', home: 'Fish Shop (on the beach)', who: 'Old fisherman who runs the Fish Shop. Gives you your first fishing rod.', kw: 'fisherman fishing rod pipe beach fish shop sailor boat',
+    love: "Catfish;Diamond;Gold Bar;Iridium Bar;Jewels Of The Sea;Mead;Octopus;Pumpkin;Sea Cucumber;Sturgeon;The Art O' Crabbing", like: "Bait And Bobber;Lingcod;Quartz;Seafoam Pudding;Tiger Trout;Baked Fish;Carp Surprise;Chowder;Crab Cakes;Crispy Bass;Escargot;Fish Stew;Fish Taco;Fried Calamari;Fried Eel;Lobster Bisque;Salmon Dinner;Trout Soup", dis: "All Cooking (except Bread, Fried Egg, Strange Bun, Dish O' The Sea, Maki Roll, Sashimi, Baked Fish, Carp Surprise, Chowder, Crab Cakes, Crispy Bass, Escargot, Fish Stew, Fish Taco, Fried Calamari, Fried Eel, Lobster Bisque, Salmon Dinner, Seafoam Pudding, & Trout Soup);All Mushrooms (except Red);Daffodil;Dandelion;Ginger;Hazelnut;Holly;Leek;Life Elixir;Salmonberry;Snow Yam;Wild Horseradish;Winter Root", hate: "" },
+  { n: 'Wizard', b: 'Winter 17', home: "Wizard's Tower (Cindersap Forest)", who: 'Mysterious magician in the tower in the forest. Lets you read the Junimos\' writing.', kw: 'wizard magic mage tower purple robe rasmodius junimo',
+    love: "Book of Mysteries;Purple Mushroom;Solar Essence;Super Cucumber;Void Essence", like: "All Geode Minerals;All Trinkets;Iridium Bar;Quartz", dis: "All Eggs;All Milk;All Mushrooms (except Red & Purple);Daffodil;Dandelion;Ginger;Hazelnut;Holly;Leek;Salmonberry;Slime;Snow Yam;Wild Horseradish;Winter Root", hate: "" },
+];
+
+const UNIVERSAL = {
+  love: "Golden Pumpkin;Magic Rock Candy;Pearl;Prismatic Shard;Rabbit's Foot;Stardrop Tea",
+  like: "All Artisan Goods (except Oil & Void Mayonnaise);All Cooking (except Bread, Fried Egg, Seafoam Pudding, & Strange Bun);All Flowers (except Poppy);All Foraged Minerals (except Quartz);All Fruit Tree Fruit;All Gems;All Vegetables (except Hops, Tea Leaves, Unmilled Rice, & Wheat);Life Elixir;Maple Syrup;Piña Colada;Rainbow Shell;Treasure Chest",
+  dis: "All Fish (except Carp & Snail);All Geode Minerals;All Artifacts;Cave Carrot;Driftwood;Field Snack;Oak Resin;Oil;Pine Tar;Rice;Solar Essence;Spring Onion;Unmilled Rice;Vinegar;Void Egg;Void Essence;Wheat Flour;Clay;Wood;Stone;Hardwood;Fiber;Coal;Copper Bar;Iron Bar;Gold Bar;Iridium Bar;Gold Ore;Iridium Ore;Refined Quartz;Bone Fragment;Battery Pack",
+  hate: "Carp;Snail;Copper Ore;Iron Ore;Green Algae;White Algae;Hay;Poppy;Red Mushroom;Sea Urchin;Seaweed;Seafoam Pudding;Strange Bun;Sugar;Void Mayonnaise;Monster Musk;Radioactive Bar;Radioactive Ore;Dragon Tooth;Joja Cola;Bat Wing;Slime;Bug Meat;Sap;Crab Pot;Trash",
+};
+
+/* ---------- Crops ----------
+   [name, seasons, days, regrow, seedName, seedPrice, seedWhere, sell, notes] */
+const CROPS = [
+  ['Blue Jazz', 'Sp', 7, 0, 'Jazz Seeds', 30, "Pierre's", 50, 'Flower. Bees near flowers make flower honey.'],
+  ['Carrot', 'Sp', 3, 0, 'Carrot Seeds', 0, 'Dig artifact spots or chop trees in Spring', 35, 'Fastest crop in the game.'],
+  ['Cauliflower', 'Sp', 12, 0, 'Cauliflower Seeds', 80, "Pierre's", 175, 'Can grow into a giant crop in a 3×3 square. Maru loves it.'],
+  ['Coffee Bean', 'Sp Su', 10, 2, 'Coffee Bean', 0, 'Traveling Cart (2,500g), Dust Sprites in the Mines (floors 41–79)', 15, 'Grows in Spring and Summer. Put 5 beans in a Keg for Coffee.'],
+  ['Garlic', 'Sp', 4, 0, 'Garlic Seeds', 40, "Pierre's (Year 2+)", 60, ''],
+  ['Green Bean', 'Sp', 10, 3, 'Bean Starter', 60, "Pierre's", 40, 'Needs a trellis (you cannot walk through it).'],
+  ['Kale', 'Sp', 6, 0, 'Kale Seeds', 70, "Pierre's", 110, ''],
+  ['Parsnip', 'Sp', 4, 0, 'Parsnip Seeds', 20, "Pierre's", 35, 'Starter crop. Pam loves parsnips.'],
+  ['Potato', 'Sp', 6, 0, 'Potato Seeds', 50, "Pierre's", 80, 'Sometimes gives extra potatoes.'],
+  ['Rhubarb', 'Sp', 13, 0, 'Rhubarb Seeds', 100, 'Oasis (desert)', 220, ''],
+  ['Strawberry', 'Sp', 8, 4, 'Strawberry Seeds', 100, 'Egg Festival (Spring 13)', 120, 'Only sold at the Egg Festival. Plant on Spring 13 or 14 for two harvests.'],
+  ['Tulip', 'Sp', 6, 0, 'Tulip Bulb', 20, "Pierre's", 30, 'Flower. Evelyn loves tulips.'],
+  ['Unmilled Rice', 'Sp', 8, 0, 'Rice Shoot', 40, "Pierre's", 30, 'Grows in 6 days if planted next to water.'],
+  ['Blueberry', 'Su', 13, 4, 'Blueberry Seeds', 80, "Pierre's", 50, 'Gives 3 berries per harvest.'],
+  ['Corn', 'Su Fa', 14, 4, 'Corn Seeds', 150, "Pierre's", 50, 'Grows in Summer and Fall: plant in Summer and it keeps producing into Fall.'],
+  ['Hops', 'Su', 11, 1, 'Hops Starter', 60, "Pierre's", 25, 'Needs a trellis. Harvest daily. Keg → Pale Ale.'],
+  ['Hot Pepper', 'Su', 5, 3, 'Pepper Seeds', 40, "Pierre's", 40, 'Lewis and Shane love Hot Peppers.'],
+  ['Melon', 'Su', 12, 0, 'Melon Seeds', 80, "Pierre's", 250, 'Can grow into a giant crop. Penny loves melons.'],
+  ['Poppy', 'Su', 7, 0, 'Poppy Seeds', 100, "Pierre's", 140, 'Flower. Needed for the Chef\'s Bundle. Penny loves it; most others hate it.'],
+  ['Radish', 'Su', 6, 0, 'Radish Seeds', 40, "Pierre's", 90, ''],
+  ['Red Cabbage', 'Su', 9, 0, 'Red Cabbage Seeds', 100, "Pierre's (Year 2+), Traveling Cart", 260, 'Needed for the Dye Bundle. In Year 1, check the Traveling Cart.'],
+  ['Starfruit', 'Su', 13, 0, 'Starfruit Seeds', 400, 'Oasis (desert)', 750, 'Top money crop. Makes great wine.'],
+  ['Summer Spangle', 'Su', 8, 0, 'Spangle Seeds', 50, "Pierre's", 90, 'Flower. Caroline loves it.'],
+  ['Summer Squash', 'Su', 6, 3, 'Summer Squash Seeds', 0, 'Dig artifact spots or chop trees in Summer', 45, ''],
+  ['Sunflower', 'Su Fa', 8, 0, 'Sunflower Seeds', 200, "Pierre's (125g at JojaMart)", 80, 'Grows in Summer and Fall. Haley loves sunflowers.'],
+  ['Tomato', 'Su', 11, 4, 'Tomato Seeds', 50, "Pierre's", 60, ''],
+  ['Wheat', 'Su Fa', 4, 0, 'Wheat Seeds', 10, "Pierre's", 25, 'Grows in Summer and Fall. Mill it into flour or keg it into Beer.'],
+  ['Amaranth', 'Fa', 7, 0, 'Amaranth Seeds', 70, "Pierre's", 150, ''],
+  ['Artichoke', 'Fa', 8, 0, 'Artichoke Seeds', 30, "Pierre's (Year 2+)", 160, ''],
+  ['Beet', 'Fa', 6, 0, 'Beet Seeds', 20, 'Oasis (desert)', 100, 'Evelyn loves beets. Mill into Sugar.'],
+  ['Bok Choy', 'Fa', 4, 0, 'Bok Choy Seeds', 50, "Pierre's", 80, ''],
+  ['Broccoli', 'Fa', 8, 4, 'Broccoli Seeds', 0, 'Dig artifact spots or chop trees in Fall', 70, ''],
+  ['Cranberries', 'Fa', 7, 5, 'Cranberry Seeds', 240, "Pierre's", 75, 'Gives 2 berries per harvest. Great early money.'],
+  ['Eggplant', 'Fa', 5, 5, 'Eggplant Seeds', 20, "Pierre's", 60, ''],
+  ['Fairy Rose', 'Fa', 12, 0, 'Fairy Seeds', 200, "Pierre's", 290, 'Flower. Bees near it make expensive honey.'],
+  ['Grape', 'Fa', 10, 3, 'Grape Starter', 60, "Pierre's", 80, 'Needs a trellis. Also forageable in Summer.'],
+  ['Pumpkin', 'Fa', 13, 0, 'Pumpkin Seeds', 100, "Pierre's", 320, 'Giant crop possible. Abigail, Krobus and Willy love it.'],
+  ['Yam', 'Fa', 10, 0, 'Yam Seeds', 60, "Pierre's", 160, 'Linus loves yams.'],
+  ['Powdermelon', 'Wi', 7, 0, 'Powdermelon Seeds', 0, 'Dig artifact spots or chop trees in Winter', 60, 'The only Winter crop. Can grow giant.'],
+  ['Ancient Fruit', 'Sp Su Fa', 28, 7, 'Ancient Seeds', 0, 'Donate an Ancient Seed artifact to the museum, or Seed Maker', 550, 'Grows Spring through Fall; keeps producing forever in the Greenhouse.'],
+  ['Sweet Gem Berry', 'Fa', 24, 0, 'Rare Seed', 1000, 'Traveling Cart', 3000, 'Plant early in Fall. Old Master Cannoli in the Secret Woods wants one.'],
+  ['Tea Leaves', 'Sp Su Fa', 20, 0, 'Tea Sapling', 0, "Caroline's 2-heart event, or craft it", 50, 'A bush that lasts forever. Leaves appear on days 22–28 of each season.'],
+  ['Cactus Fruit', 'Any', 12, 3, 'Cactus Seeds', 150, 'Oasis (desert)', 75, 'Grow it in a garden pot indoors.'],
+];
+
+const FRUIT_TREES = [
+  ['Apricot', 'Sp', 2000, 50], ['Cherry', 'Sp', 3400, 80], ['Orange', 'Su', 4000, 100],
+  ['Peach', 'Su', 6000, 140], ['Apple', 'Fa', 4000, 100], ['Pomegranate', 'Fa', 6000, 140],
+];
+
+/* ---------- Fish ----------
+   [name, sell, where, times, seasons ('All' or list; G = also all year on Ginger Island), weather, difficulty, flags]
+   times: [[start,end]] in 24h; 26 = 2am. */
+const FISH = [
+  ['Albacore', 75, 'Ocean', [[6, 11], [18, 26]], 'Fa Wi', 'Any', 60],
+  ['Anchovy', 30, 'Ocean', [[6, 26]], 'Sp Fa', 'Any', 30],
+  ['Bream', 45, 'Town River, Forest River', [[18, 26]], 'All', 'Any', 35],
+  ['Bullhead', 75, 'Mountain Lake', [[6, 26]], 'All', 'Any', 46],
+  ['Carp', 30, 'Mountain Lake, Secret Woods, Sewers', [[6, 26]], 'All', 'Any', 15],
+  ['Catfish', 200, 'Town River, Forest River, Secret Woods', [[6, 24]], 'Sp Fa', 'Rain', 75, 'Also Summer rain in the Secret Woods pond.'],
+  ['Chub', 50, 'Forest River, Mountain Lake', [[6, 26]], 'All', 'Any', 35],
+  ['Dorado', 100, 'Forest River', [[6, 19]], 'Su', 'Any', 78],
+  ['Eel', 85, 'Ocean', [[16, 26]], 'Sp Fa', 'Rain', 70],
+  ['Flounder', 100, 'Ocean', [[6, 20]], 'Sp Su G', 'Any', 50],
+  ['Ghostfish', 45, 'Mines floors 20 & 60', [[6, 26]], 'All', 'Any', 50, 'Ghosts in the Mines drop them too.'],
+  ['Goby', 150, 'Forest Waterfalls', [[6, 26]], 'All', 'Any', 55],
+  ['Halibut', 80, 'Ocean', [[6, 11], [19, 26]], 'Sp Su Wi', 'Any', 50],
+  ['Herring', 30, 'Ocean', [[6, 26]], 'Sp Wi', 'Any', 25],
+  ['Ice Pip', 500, 'Mines floor 60', [[6, 26]], 'All', 'Any', 85],
+  ['Largemouth Bass', 100, 'Mountain Lake', [[6, 19]], 'All', 'Any', 50],
+  ['Lava Eel', 700, 'Mines floor 100', [[6, 26]], 'All', 'Any', 90],
+  ['Lingcod', 120, 'Town River, Forest River, Mountain Lake', [[6, 26]], 'Wi', 'Any', 85],
+  ['Midnight Carp', 150, 'Forest Pond, Mountain Lake', [[22, 26]], 'Fa Wi G', 'Any', 55],
+  ['Octopus', 150, 'Ocean', [[6, 13]], 'Su G', 'Any', 95, 'Very hard to catch. Willy loves it.'],
+  ['Perch', 55, 'Town River, Forest River, Forest Pond, Mountain Lake', [[6, 26]], 'Wi', 'Any', 35],
+  ['Pike', 100, 'Town River, Forest River, Forest Pond', [[6, 26]], 'Su Wi', 'Any', 60],
+  ['Pufferfish', 200, 'Ocean', [[12, 16]], 'Su G', 'Sun', 80, 'Abigail loves it.'],
+  ['Rainbow Trout', 65, 'Town River, Forest River, Mountain Lake', [[6, 19]], 'Su', 'Sun', 45],
+  ['Red Mullet', 75, 'Ocean', [[6, 19]], 'Su Wi', 'Any', 55],
+  ['Red Snapper', 50, 'Ocean', [[6, 19]], 'Su Fa', 'Rain', 40],
+  ['Salmon', 75, 'Town River, Forest River, Forest Waterfalls', [[6, 19]], 'Fa', 'Any', 50],
+  ['Sandfish', 75, 'The Desert', [[6, 20]], 'All', 'Any', 65, 'Penny loves it.'],
+  ['Sardine', 40, 'Ocean', [[6, 19]], 'Sp Fa Wi', 'Any', 30],
+  ['Scorpion Carp', 150, 'The Desert (fishing level 4+)', [[6, 20]], 'All', 'Any', 90],
+  ['Sea Cucumber', 75, 'Ocean', [[6, 19]], 'Fa Wi', 'Any', 40],
+  ['Shad', 60, 'Town River, Forest River', [[9, 26]], 'Sp Su Fa', 'Rain', 45],
+  ['Slimejack', 100, 'Mutant Bug Lair', [[6, 26]], 'All', 'Any', 55, '', 1],
+  ['Smallmouth Bass', 50, 'Town River, Forest Pond', [[6, 26]], 'Sp Fa', 'Any', 28],
+  ['Squid', 80, 'Ocean', [[18, 26]], 'Wi', 'Any', 75, 'SquidFest on Winter 12–13.'],
+  ['Stonefish', 300, 'Mines floor 20', [[6, 26]], 'All', 'Any', 65],
+  ['Sturgeon', 200, 'Mountain Lake', [[6, 19]], 'Su Wi', 'Any', 78, 'Roe → Caviar. Willy loves it.'],
+  ['Sunfish', 30, 'Town River, Forest River', [[6, 19]], 'Sp Su', 'Sun', 30],
+  ['Super Cucumber', 250, 'Ocean', [[18, 26]], 'Su Fa G', 'Any', 80, 'The Wizard loves it.'],
+  ['Tiger Trout', 150, 'Town River, Forest River', [[6, 19]], 'Fa Wi', 'Any', 60],
+  ['Tilapia', 75, 'Ocean', [[6, 14]], 'Su Fa', 'Any', 50],
+  ['Tuna', 100, 'Ocean', [[6, 19]], 'Su Wi G', 'Any', 70],
+  ['Void Salmon', 150, "Witch's Swamp", [[6, 26]], 'All', 'Any', 80, '', 1],
+  ['Walleye', 105, 'Town River, Forest River, Forest Pond, Mountain Lake', [[12, 26]], 'Fa', 'Rain', 45],
+  ['Woodskip', 75, 'Secret Woods', [[6, 26]], 'All', 'Any', 50],
+  ['Blue Discus', 120, 'Ginger Island rivers', [[6, 26]], 'All', 'Any', 60, '', 1],
+  ['Lionfish', 100, 'Ginger Island ocean', [[6, 26]], 'All', 'Any', 50, '', 1],
+  ['Stingray', 180, 'Pirate Cove (Ginger Island)', [[6, 26]], 'All', 'Any', 80, '', 1],
+  ['Midnight Squid', 100, 'Night Market submarine (Winter 15–17)', [[17, 23]], 'Wi', 'Any', 55],
+  ['Spook Fish', 220, 'Night Market submarine (Winter 15–17)', [[17, 23]], 'Wi', 'Any', 60],
+  ['Blobfish', 500, 'Night Market submarine (Winter 15–17)', [[17, 23]], 'Wi', 'Any', 75],
+  // legendary — one catch each
+  ['Crimsonfish', 1500, 'East end of the pier on the Beach (fishing level 5)', [[6, 26]], 'Su', 'Any', 95, 'Legendary. You can only catch it once.', 0, 1],
+  ['Angler', 900, 'Wooden bridge north of JojaMart (fishing level 3)', [[6, 26]], 'Fa', 'Any', 85, 'Legendary. You can only catch it once.', 0, 1],
+  ['Legend', 5000, 'Mountain Lake, near the log (fishing level 10)', [[6, 26]], 'Sp', 'Rain', 110, 'Legendary. You can only catch it once.', 0, 1],
+  ['Glacierfish', 1000, 'South tip of Arrowhead Island, Cindersap Forest (fishing level 6)', [[6, 26]], 'Wi', 'Any', 100, 'Legendary. You can only catch it once.', 0, 1],
+  ['Mutant Carp', 1000, 'The Sewers', [[6, 26]], 'All', 'Any', 80, 'Legendary. You can only catch it once.', 1, 1],
+];
+/* Crab pot catches: [name, sell, water] */
+const CRAB_POT = [
+  ['Clam', 50, 'Ocean'], ['Cockle', 50, 'Ocean'], ['Crab', 100, 'Ocean'], ['Lobster', 120, 'Ocean'], ['Mussel', 30, 'Ocean'],
+  ['Oyster', 40, 'Ocean'], ['Shrimp', 60, 'Ocean'], ['Crayfish', 75, 'Freshwater'], ['Periwinkle', 20, 'Freshwater'], ['Snail', 65, 'Freshwater'],
+];
+const FISH_SPOTS = {
+  'Ocean': 'The Beach (south of town)', 'Town River': 'The river running through Pelican Town', 'Forest River': 'The river in Cindersap Forest',
+  'Forest Pond': 'The pond in Cindersap Forest (by the Wizard\'s Tower)', 'Mountain Lake': 'The lake by the Carpenter\'s Shop',
+  'Forest Waterfalls': 'The waterfalls in north Cindersap Forest', 'Secret Woods': 'The pond in the Secret Woods',
+};
+
+/* ---------- Forage ----------
+   [name, seasons, where, sell, keywords, category] */
+const FORAGE = [
+  ['Wild Horseradish', 'Sp', 'Forage everywhere in Spring', 50, 'root white', 'Forage'],
+  ['Daffodil', 'Sp', 'Forage everywhere in Spring; Pierre sells them at the Flower Dance', 30, 'yellow flower', 'Forage'],
+  ['Leek', 'Sp', 'Forage everywhere in Spring', 60, 'green onion', 'Forage'],
+  ['Dandelion', 'Sp', 'Forage everywhere in Spring; Pierre sells them at the Flower Dance', 40, 'yellow flower weed', 'Forage'],
+  ['Spring Onion', 'Sp', 'Southeast corner of Cindersap Forest', 8, 'green onion', 'Forage'],
+  ['Morel', 'Sp', 'Secret Woods in Spring', 150, 'brown mushroom', 'Mushroom'],
+  ['Common Mushroom', 'Sp Fa', 'Forage in Fall; Secret Woods in Spring; Farm Cave (mushroom option)', 40, 'brown mushroom', 'Mushroom'],
+  ['Salmonberry', 'Sp', 'Bushes everywhere, Spring 15–18', 5, 'pink berry bush', 'Fruit'],
+  ['Spice Berry', 'Su', 'Forage in Summer', 80, 'red berries', 'Fruit'],
+  ['Sweet Pea', 'Su', 'Forage in Summer', 50, 'purple pink flower', 'Flower'],
+  ['Fiddlehead Fern', 'Su', 'Secret Woods in Summer; chopping Green Rain trees', 90, 'green curly fern', 'Vegetable'],
+  ['Red Mushroom', 'Su Fa', 'Secret Woods (Summer & Fall); The Mines any season', 75, 'red spotted mushroom', 'Mushroom'],
+  ['Chanterelle', 'Fa', 'Secret Woods in Fall', 160, 'orange yellow mushroom', 'Mushroom'],
+  ['Wild Plum', 'Fa', 'Forage in Fall', 80, 'purple fruit plum', 'Fruit'],
+  ['Hazelnut', 'Fa', 'Forage in Fall', 40, 'nut brown', 'Forage'],
+  ['Blackberry', 'Fa', 'Bushes everywhere, Fall 8–11', 20, 'dark purple berry bush', 'Fruit'],
+  ['Holly', 'Wi', 'Forage in Winter', 80, 'red berries green leaves', 'Forage'],
+  ['Crystal Fruit', 'Wi', 'Forage in Winter; Dust Sprites in the Mines (floors 41–79)', 150, 'blue icy fruit', 'Fruit'],
+  ['Crocus', 'Wi', 'Forage in Winter', 60, 'purple flower', 'Flower'],
+  ['Snow Yam', 'Wi', 'Hoe bare dirt or dig artifact spots in Winter', 100, 'white root', 'Forage'],
+  ['Winter Root', 'Wi', 'Hoe bare dirt or dig artifact spots in Winter', 70, 'brown root', 'Forage'],
+  ['Coconut', 'Any', 'Calico Desert; palm trees on Ginger Island', 100, 'brown nut', 'Fruit'],
+  ['Cactus Fruit', 'Any', 'Calico Desert', 75, 'red green', 'Fruit'],
+  ['Cave Carrot', 'Any', 'The Mines: break crates or hoe the dirt', 25, 'orange carrot', 'Forage'],
+  ['Purple Mushroom', 'Any', 'The Mines (deeper floors); Farm Cave (mushroom option)', 250, 'purple mushroom', 'Mushroom'],
+  ['Coral', 'Any', 'The Beach', 80, 'red pink coral', 'Beach'],
+  ['Nautilus Shell', 'Wi', 'The Beach in Winter', 120, 'spiral shell', 'Beach'],
+  ['Rainbow Shell', 'Su', 'The Beach in Summer', 300, 'colorful shell', 'Beach'],
+  ['Sea Urchin', 'Any', 'Tide pools on the east Beach, after fixing the bridge (300 wood)', 160, 'spiky black purple', 'Beach'],
+  ['Moss', 'Any', 'Scrape it off old trees with a scythe; lots after Green Rain', 5, 'green', 'Forage'],
+  ['Ginger', 'Any', 'Dig ginger plants on Ginger Island', 60, 'root', 'Forage', 1],
+  ['Magma Cap', 'Any', 'Volcano Dungeon on Ginger Island', 400, 'red orange mushroom', 'Mushroom', 1],
+];
+
+/* ---------- Other items (animal, artisan, materials, minerals...) ----------
+   [name, category, how to get, sell, keywords, spoiler] */
+const ITEMS = [
+  // animal products
+  ['Egg', 'Egg', 'White chickens (coop)', 50, 'white chicken'],
+  ['Brown Egg', 'Egg', 'Brown chickens (coop)', 50, 'chicken'],
+  ['Large Egg', 'Egg', 'Happy white chickens', 95, 'big white chicken'],
+  ['Large Brown Egg', 'Egg', 'Happy brown chickens', 95, 'big chicken'],
+  ['Duck Egg', 'Egg', 'Ducks (Big Coop)', 95, 'duck'],
+  ['Duck Feather', 'Animal', 'Ducks with high friendship', 250, 'feather duck'],
+  ['Void Egg', 'Egg', 'Void chickens; Krobus sells them on some days', 65, 'black egg dark'],
+  ['Golden Egg', 'Egg', 'Golden chickens', 500, 'gold egg'],
+  ['Dinosaur Egg', 'Animal', 'Rare artifact-spot find or Mines/Skull Cavern; hatch it in an incubator', 350, 'dino'],
+  ['Ostrich Egg', 'Egg', 'Ostriches (Ostrich Incubator from Ginger Island)', 600, 'big egg', 1],
+  ['Milk', 'Milk', 'Cows (barn) — needs a Milk Pail from Marnie', 125, 'cow'],
+  ['Large Milk', 'Milk', 'Happy cows', 190, 'cow big'],
+  ['Goat Milk', 'Milk', 'Goats (Big Barn)', 225, 'goat'],
+  ['Large Goat Milk', 'Milk', 'Happy goats', 345, 'goat big'],
+  ['Wool', 'Animal', 'Sheep (Deluxe Barn, use Shears) and rabbits (Deluxe Coop)', 340, 'sheep fluffy'],
+  ['Truffle', 'Animal', 'Pigs dig them up outdoors (not in Winter)', 625, 'pig mushroom'],
+  ["Rabbit's Foot", 'Animal', 'Rabbits with high friendship', 565, 'rabbit lucky'],
+  ['Slime', 'Monster', 'Dropped by slimes', 5, 'goo green'],
+  ['Bat Wing', 'Monster', 'Dropped by bats in the Mines', 15, 'bat'],
+  ['Solar Essence', 'Monster', 'Ghosts, Metal Heads, Squid Kids in the Mines; Krobus sells it', 40, 'yellow sun'],
+  ['Void Essence', 'Monster', 'Shadow Brutes and Shadow Shamans in the Mines; Krobus sells it', 50, 'purple dark'],
+  // artisan goods
+  ['Honey', 'Artisan', 'Bee House (not in Winter); flowers nearby make better honey', 100, 'bee'],
+  ['Jelly', 'Artisan', 'Put fruit in a Preserves Jar', 0, 'jam preserves fruit'],
+  ['Pickles', 'Artisan', 'Put a vegetable in a Preserves Jar', 0, 'pickled preserves'],
+  ['Wine', 'Artisan', 'Put fruit in a Keg (about a week)', 0, 'keg fruit alcohol'],
+  ['Juice', 'Artisan', 'Put a vegetable in a Keg', 0, 'keg vegetable'],
+  ['Beer', 'Artisan', 'Put Wheat in a Keg; Saloon sells it', 200, 'keg wheat alcohol'],
+  ['Pale Ale', 'Artisan', 'Put Hops in a Keg', 300, 'keg hops'],
+  ['Mead', 'Artisan', 'Put Honey in a Keg', 300, 'keg honey'],
+  ['Coffee', 'Artisan', 'Put 5 Coffee Beans in a Keg; Saloon sells it', 150, 'keg drink'],
+  ['Green Tea', 'Artisan', 'Put Tea Leaves in a Keg', 100, 'keg tea'],
+  ['Cheese', 'Artisan', 'Put Milk in a Cheese Press', 230, 'press milk'],
+  ['Goat Cheese', 'Artisan', 'Put Goat Milk in a Cheese Press', 400, 'press goat'],
+  ['Mayonnaise', 'Artisan', 'Put an Egg in a Mayonnaise Machine', 190, 'mayo'],
+  ['Duck Mayonnaise', 'Artisan', 'Put a Duck Egg in a Mayonnaise Machine', 375, 'mayo duck'],
+  ['Void Mayonnaise', 'Artisan', 'Put a Void Egg in a Mayonnaise Machine', 275, 'mayo dark'],
+  ['Dinosaur Mayonnaise', 'Artisan', 'Put a Dinosaur Egg in a Mayonnaise Machine', 800, 'mayo dino'],
+  ['Truffle Oil', 'Artisan', 'Put a Truffle in an Oil Maker', 1065, 'oil pig'],
+  ['Oil', 'Artisan', "Pierre's (200g), or Corn / Sunflower in an Oil Maker", 100, 'cooking'],
+  ['Cloth', 'Artisan', 'Put Wool in a Loom; recycle Soggy Newspaper', 470, 'fabric loom'],
+  ['Caviar', 'Artisan', 'Put Sturgeon Roe in a Preserves Jar', 500, 'roe fish eggs'],
+  ['Roe', 'Artisan', 'Fish Ponds', 30, 'fish eggs'],
+  ['Raisins', 'Artisan', 'Put Grapes in a Dehydrator', 600, 'dried grapes'],
+  ['Maple Syrup', 'Tapper', 'Tapper on a maple tree', 200, 'tree syrup'],
+  ['Oak Resin', 'Tapper', 'Tapper on an oak tree', 150, 'tree sap'],
+  ['Pine Tar', 'Tapper', 'Tapper on a pine tree', 100, 'tree'],
+  // cooking basics
+  ['Sugar', 'Ingredient', "Pierre's (100g); or Beets in a Mill", 50, 'baking'],
+  ['Wheat Flour', 'Ingredient', "Pierre's (100g); or Wheat in a Mill", 50, 'flour baking'],
+  ['Rice', 'Ingredient', "Pierre's (200g); or Unmilled Rice in a Mill", 100, 'white'],
+  ['Vinegar', 'Ingredient', "Pierre's (200g)", 100, 'sour'],
+  ['Seaweed', 'Fishing', 'Fishing in the ocean; washes up on the beach', 20, 'green ocean'],
+  ['Green Algae', 'Fishing', 'Fishing in lakes and rivers', 15, 'green'],
+  ['White Algae', 'Fishing', 'Fishing in the Mines', 25, 'white'],
+  ['Squid Ink', 'Fishing', 'Squid caught or in a Fish Pond; Squid Kids in the Mines', 110, 'black ink'],
+  // materials
+  ['Wood', 'Material', 'Chop trees and branches with your axe; Robin sells it', 2, 'lumber log'],
+  ['Stone', 'Material', 'Break rocks with your pickaxe; Robin sells it', 2, 'rock'],
+  ['Hardwood', 'Material', 'Large stumps (copper axe), big logs (steel axe); 6 stumps regrow daily in the Secret Woods', 15, 'stump log'],
+  ['Fiber', 'Material', 'Cut weeds with a scythe', 1, 'weeds grass'],
+  ['Clay', 'Material', 'Hoe bare dirt', 20, 'dirt'],
+  ['Coal', 'Material', 'Rocks in the Mines, Dust Sprites, Charcoal Kiln (10 wood)', 15, 'black fuel'],
+  ['Hay', 'Material', "Marnie's (50g); cut grass with a Silo built", 0, 'animal food'],
+  ['Copper Ore', 'Material', 'Mines floors 1–39 (orange-speckled rocks)', 5, 'orange'],
+  ['Iron Ore', 'Material', 'Mines floors 40–79', 10, 'grey'],
+  ['Gold Ore', 'Material', 'Mines floors 80–119', 25, 'yellow'],
+  ['Iridium Ore', 'Material', 'Skull Cavern; rarely in the Quarry and deep Mines', 100, 'purple'],
+  ['Copper Bar', 'Material', 'Smelt 5 Copper Ore + 1 Coal in a Furnace', 60, 'metal ingot'],
+  ['Iron Bar', 'Material', 'Smelt 5 Iron Ore + 1 Coal in a Furnace', 120, 'metal ingot'],
+  ['Gold Bar', 'Material', 'Smelt 5 Gold Ore + 1 Coal in a Furnace', 250, 'metal ingot'],
+  ['Iridium Bar', 'Material', 'Smelt 5 Iridium Ore + 1 Coal in a Furnace', 1000, 'metal ingot purple'],
+  ['Refined Quartz', 'Material', 'Smelt Quartz in a Furnace', 50, 'glass'],
+  ['Battery Pack', 'Material', 'Lightning Rods during storms', 500, 'electric storm'],
+  ['Bone Fragment', 'Material', 'Skeletons in the Mines; fossils', 12, 'bone'],
+  // minerals
+  ['Quartz', 'Foraged Mineral', 'Lying on the ground in the Mines', 25, 'white crystal'],
+  ['Earth Crystal', 'Foraged Mineral', 'Mines floors 1–39; Geodes', 50, 'white brown crystal'],
+  ['Frozen Tear', 'Foraged Mineral', 'Mines floors 40–79; Frozen Geodes', 75, 'blue ice crystal'],
+  ['Fire Quartz', 'Foraged Mineral', 'Mines floors 80–119; Magma Geodes', 100, 'red crystal'],
+  ['Amethyst', 'Gem', 'Purple gem nodes in the Mines (floors 1+); Geodes', 100, 'purple gem'],
+  ['Topaz', 'Gem', 'Yellow gem nodes in the Mines (floors 1+); Geodes', 80, 'yellow gem'],
+  ['Aquamarine', 'Gem', 'Blue gem nodes in the Mines (floors 40+); fishing treasure', 180, 'blue gem'],
+  ['Jade', 'Gem', 'Green gem nodes in the Mines (floors 40+)', 200, 'green gem'],
+  ['Ruby', 'Gem', 'Red gem nodes in the Mines (floors 80+)', 250, 'red gem'],
+  ['Emerald', 'Gem', 'Green gem nodes in the Mines (floors 80+)', 250, 'green gem'],
+  ['Diamond', 'Gem', 'White diamond nodes in the Mines (floors 50+); Geodes; Crystalarium', 750, 'white gem sparkly'],
+  ['Prismatic Shard', 'Gem', 'Very rare: Mines floors 80+, Omni Geodes, Skull Cavern, Mummies', 2000, 'rainbow gem shard'],
+  ['Geode', 'Geode', 'Mines floors 1–39. Clint cracks them for 25g', 50, 'rock'],
+  ['Frozen Geode', 'Geode', 'Mines floors 40–79. Clint cracks them for 25g', 100, 'blue rock'],
+  ['Magma Geode', 'Geode', 'Mines floors 80–119. Clint cracks them for 25g', 150, 'red rock'],
+  ['Omni Geode', 'Geode', 'Anywhere in the Mines, Skull Cavern. Clint cracks them for 25g', 0, 'rainbow rock'],
+  ['Obsidian', 'Geode Mineral', 'Crack Magma or Omni Geodes at Clint\'s', 200, 'black'],
+  ['Tigerseye', 'Geode Mineral', 'Crack Magma or Omni Geodes at Clint\'s', 275, 'striped brown'],
+  ['Lemon Stone', 'Geode Mineral', 'Crack Magma or Omni Geodes at Clint\'s', 200, 'yellow'],
+  ['Fire Opal', 'Geode Mineral', 'Crack Magma or Omni Geodes at Clint\'s', 350, 'red'],
+  ['Opal', 'Geode Mineral', 'Crack Frozen or Omni Geodes at Clint\'s', 150, 'white'],
+  ['Fairy Stone', 'Geode Mineral', 'Crack Frozen or Omni Geodes at Clint\'s', 250, 'pink'],
+  ['Star Shards', 'Geode Mineral', 'Crack Magma or Omni Geodes at Clint\'s', 500, 'star'],
+  // artifacts & special
+  ['Dwarf Scroll', 'Artifact', 'Dropped by monsters in the Mines (four different ones). Donate all 4 to get the Dwarvish Translation Guide', 1, 'scroll paper'],
+  ['Ancient Doll', 'Artifact', 'Artifact spots (wiggling worms) — dig them with a hoe', 60, 'doll'],
+  ['Ancient Sword', 'Artifact', 'Artifact spots in the Forest/Mountains; fishing treasure', 100, 'sword'],
+  ['Bone Flute', 'Artifact', 'Artifact spots (Mountains, Forest, Farm)', 100, 'flute bone'],
+  ['Dwarf Gadget', 'Artifact', 'Mines floors 1–79; artifact spots', 200, 'gadget'],
+  ['Strange Doll (green)', 'Artifact', 'Very rare: artifact spots, Secret Notes', 1000, 'doll green'],
+  ['Strange Doll (yellow)', 'Artifact', 'Very rare: artifact spots, Secret Notes', 1000, 'doll yellow'],
+  ['Ancient Seed', 'Artifact', 'Artifact spots; donate it to the museum to get Ancient Fruit seeds', 5, 'seed'],
+  ['Golden Pumpkin', 'Special', "Finish the haunted maze at Spirit's Eve (Fall 27)", 2500, 'gold pumpkin'],
+  ['Pearl', 'Special', 'Rare: Night Market mermaid show, Blobfish ponds, fishing treasure', 2500, 'white'],
+  ['Magic Rock Candy', 'Special', 'Desert Trader (Thursdays); rare Skull Cavern treasure', 5000, 'rainbow candy', 1],
+  ['Stardrop Tea', 'Special', 'Rare: golden mystery boxes, Trout Derby, Qi\'s shop', 1, 'tea star'],
+  ['Treasure Chest', 'Special', 'Rare fishing catch', 5000, 'chest'],
+  ['Frog Egg', 'Trinket', 'A trinket, available after Combat Mastery: monster drops, crates, Skull Cavern treasure', 1000, 'frog companion', 1],
+  ['Bouquet', 'Special', "Pierre's (200g). Give it at 8 hearts to start dating", 100, 'flowers dating date'],
+  ["Mermaid's Pendant", 'Special', 'Old Mariner (5,000g): on the east Beach past the 300-wood bridge, rainy days only', 2500, 'propose marriage necklace'],
+  ['Joja Cola', 'Trash', 'JojaMart (75g); fishing trash', 25, 'soda'],
+  ['Driftwood', 'Trash', 'Fishing trash', 0, 'wood junk'],
+  ['Life Elixir', 'Special', 'Cook it (Combat level 2); Adventurer\'s Guild', 500, 'potion'],
+  ['Piña Colada', 'Special', 'Ginger Island resort bar', 300, 'drink tropical', 1],
+  ['Mango', 'Fruit', 'Mango trees (from Ginger Island)', 130, 'tropical fruit', 1],
+  ['Banana', 'Fruit', 'Banana trees (from Ginger Island)', 150, 'tropical fruit', 1],
+  ['Pineapple', 'Fruit', 'Grow Pineapple Seeds in Summer (from Ginger Island)', 300, 'tropical fruit', 1],
+  ['Taro Root', 'Vegetable', 'Grow Taro Tubers on Ginger Island', 100, 'root', 1],
+];
+
+
+/* ---------- Cooking ----------
+   [name, ingredients, recipe source, sell] — from the wiki cooking table. */
+const RECIPES = [
+  ['Fried Egg', 'Egg', 'You start knowing it', 35],
+  ['Omelet', 'Egg;Milk', 'Queen of Sauce: Spring 28, Y1 · Saloon (100g)', 125],
+  ['Salad', 'Leek;Dandelion;Vinegar', 'Letter from Emily (3 hearts)', 110],
+  ['Cheese Cauliflower', 'Cauliflower;Cheese', 'Letter from Pam (3 hearts)', 300],
+  ['Baked Fish', 'Sunfish;Bream;Wheat Flour', 'Queen of Sauce: Summer 7, Y1', 100],
+  ['Parsnip Soup', 'Parsnip;Milk;Vinegar', 'Letter from Caroline (3 hearts)', 120],
+  ['Vegetable Medley', 'Tomato;Beet', 'Letter from Caroline (7 hearts)', 120],
+  ['Complete Breakfast', 'Fried Egg;Milk;Hashbrowns;Pancakes', 'Queen of Sauce: Spring 21, Y2', 350],
+  ['Fried Calamari', 'Squid;Wheat Flour;Oil', 'Letter from Jodi (3 hearts)', 150],
+  ['Strange Bun', 'Wheat Flour;Periwinkle;Void Mayonnaise', 'Letter from Shane (7 hearts)', 225],
+  ['Lucky Lunch', 'Sea Cucumber;Tortilla;Blue Jazz', 'Queen of Sauce: Spring 28, Y2', 250],
+  ['Fried Mushroom', 'Common Mushroom;Morel;Oil', 'Letter from Demetrius (3 hearts)', 200],
+  ['Pizza', 'Wheat Flour;Tomato;Cheese', 'Queen of Sauce: Spring 7, Y2 · Saloon (150g)', 300],
+  ['Bean Hotpot', 'Green Bean×2', 'Letter from Clint (7 hearts)', 100],
+  ['Glazed Yams', 'Yam;Sugar', 'Queen of Sauce: Fall 21, Y1', 200],
+  ['Carp Surprise', 'Carp×4', 'Queen of Sauce: Summer 7, Y2', 150],
+  ['Hashbrowns', 'Potato;Oil', 'Queen of Sauce: Spring 14, Y2 · Saloon (50g)', 120],
+  ['Pancakes', 'Wheat Flour;Egg', 'Queen of Sauce: Summer 14, Y1 · Saloon (100g)', 80],
+  ['Salmon Dinner', 'Salmon;Amaranth;Kale', 'Letter from Gus (3 hearts)', 300],
+  ['Fish Taco', 'Tuna;Tortilla;Red Cabbage;Mayonnaise', 'Letter from Linus (7 hearts)', 500],
+  ['Crispy Bass', 'Largemouth Bass;Wheat Flour;Oil', 'Letter from Kent (3 hearts)', 150],
+  ['Pepper Poppers', 'Hot Pepper;Cheese', 'Letter from Shane (3 hearts)', 200],
+  ['Bread', 'Wheat Flour', 'Queen of Sauce: Summer 28, Y1 · Saloon (100g)', 60],
+  ['Tom Kha Soup', 'Coconut;Shrimp;Common Mushroom', 'Letter from Sandy (7 hearts)', 250],
+  ['Trout Soup', 'Rainbow Trout;Green Algae', 'Queen of Sauce: Fall 14, Y1', 100],
+  ['Chocolate Cake', 'Wheat Flour;Sugar;Egg', 'Queen of Sauce: Winter 14, Y1', 200],
+  ['Pink Cake', 'Melon;Wheat Flour;Sugar;Egg', 'Queen of Sauce: Summer 21, Y2', 480],
+  ['Rhubarb Pie', 'Rhubarb;Wheat Flour;Sugar', 'Letter from Marnie (7 hearts)', 400],
+  ['Cookie', 'Wheat Flour;Sugar;Egg', "Evelyn's 4-heart event", 140],
+  ['Spaghetti', 'Wheat Flour;Tomato', 'Letter from Lewis (3 hearts)', 120],
+  ['Fried Eel', 'Eel;Oil', 'Letter from George (3 hearts)', 120],
+  ['Spicy Eel', 'Eel;Hot Pepper', 'Letter from George (7 hearts)', 175],
+  ['Sashimi', 'Any fish', 'Letter from Linus (3 hearts)', 75],
+  ['Maki Roll', 'Any fish;Seaweed;Rice', 'Queen of Sauce: Summer 21, Y1 · Saloon (300g)', 220],
+  ['Tortilla', 'Corn', 'Queen of Sauce: Fall 7, Y1 · Saloon (100g)', 50],
+  ['Red Plate', 'Red Cabbage;Radish', 'Letter from Emily (7 hearts)', 400],
+  ['Eggplant Parmesan', 'Eggplant;Tomato', 'Letter from Lewis (7 hearts)', 200],
+  ['Rice Pudding', 'Milk;Sugar;Rice', 'Letter from Evelyn (7 hearts)', 260],
+  ['Ice Cream', 'Milk;Sugar', 'Letter from Jodi (7 hearts)', 120],
+  ['Blueberry Tart', 'Blueberry;Wheat Flour;Sugar;Egg', 'Letter from Pierre (3 hearts)', 150],
+  ["Autumn's Bounty", 'Yam;Pumpkin', 'Letter from Demetrius (7 hearts)', 350],
+  ['Pumpkin Soup', 'Pumpkin;Milk', 'Letter from Robin (7 hearts)', 300],
+  ['Super Meal', 'Bok Choy;Cranberries;Artichoke', 'Letter from Kent (7 hearts)', 220],
+  ['Cranberry Sauce', 'Cranberries;Sugar', 'Letter from Gus (7 hearts)', 120],
+  ['Stuffing', 'Bread;Cranberries;Hazelnut', 'Letter from Pam (7 hearts)', 165],
+  ["Farmer's Lunch", 'Omelet;Parsnip', 'Farming level 3', 150],
+  ['Survival Burger', 'Bread;Cave Carrot;Eggplant', 'Foraging level 8', 180],
+  ["Dish O' The Sea", 'Sardine×2;Hashbrowns', 'Fishing level 3', 220],
+  ["Miner's Treat", 'Cave Carrot×2;Sugar;Milk', 'Mining level 3', 200],
+  ['Roots Platter', 'Cave Carrot;Winter Root', 'Combat level 3', 100],
+  ['Triple Shot Espresso', 'Coffee×3', 'Saloon (5,000g)', 450],
+  ['Seafoam Pudding', 'Flounder;Midnight Carp;Squid Ink', 'Fishing level 9', 300],
+  ['Algae Soup', 'Green Algae×4', 'Letter from Clint (3 hearts)', 100],
+  ['Pale Broth', 'White Algae×2', 'Letter from Marnie (3 hearts)', 150],
+  ['Plum Pudding', 'Wild Plum×2;Wheat Flour;Sugar', 'Queen of Sauce: Winter 7, Y1', 260],
+  ['Artichoke Dip', 'Artichoke;Milk', 'Queen of Sauce: Fall 28, Y1', 210],
+  ['Stir Fry', 'Cave Carrot;Common Mushroom;Kale;Oil', 'Queen of Sauce: Spring 7, Y1', 335],
+  ['Roasted Hazelnuts', 'Hazelnut×3', 'Queen of Sauce: Summer 28, Y2', 270],
+  ['Pumpkin Pie', 'Pumpkin;Wheat Flour;Milk;Sugar', 'Queen of Sauce: Winter 21, Y1', 385],
+  ['Radish Salad', 'Oil;Vinegar;Radish', 'Queen of Sauce: Spring 21, Y1', 300],
+  ['Fruit Salad', 'Blueberry;Melon;Apricot', 'Queen of Sauce: Fall 7, Y2', 450],
+  ['Blackberry Cobbler', 'Blackberry×2;Sugar;Wheat Flour', 'Queen of Sauce: Fall 14, Y2', 260],
+  ['Cranberry Candy', 'Cranberries;Apple;Sugar', 'Queen of Sauce: Winter 28, Y1', 175],
+  ['Bruschetta', 'Bread;Oil;Tomato', 'Queen of Sauce: Winter 21, Y2', 210],
+  ['Coleslaw', 'Red Cabbage;Vinegar;Mayonnaise', 'Queen of Sauce: Spring 14, Y1', 345],
+  ['Fiddlehead Risotto', 'Oil;Fiddlehead Fern;Garlic', 'Queen of Sauce: Fall 28, Y2', 350],
+  ['Poppyseed Muffin', 'Poppy;Wheat Flour;Sugar', 'Queen of Sauce: Winter 7, Y2', 250],
+  ['Chowder', 'Clam;Milk', 'Letter from Willy (3 hearts)', 135],
+  ['Fish Stew', 'Crayfish;Mussel;Periwinkle;Tomato', 'Letter from Willy (7 hearts)', 175],
+  ['Escargot', 'Snail;Garlic', 'Letter from Willy (5 hearts)', 125],
+  ['Lobster Bisque', 'Lobster;Milk', 'Queen of Sauce: Winter 14, Y2 · Letter from Willy (9 hearts)', 205],
+  ['Maple Bar', 'Maple Syrup;Sugar;Wheat Flour', 'Queen of Sauce: Summer 14, Y2', 300],
+  ['Crab Cakes', 'Crab;Wheat Flour;Egg;Oil', 'Queen of Sauce: Fall 21, Y2', 275],
+  ['Shrimp Cocktail', 'Tomato;Shrimp;Wild Horseradish', 'Queen of Sauce: Winter 28, Y2', 160],
+  ['Ginger Ale', 'Ginger×3;Sugar', 'Dwarf shop in the Volcano (1,000g)', 200, 1],
+  ['Banana Pudding', 'Banana;Milk;Sugar', 'Island Trader (30 Bone Fragments)', 260, 1],
+  ['Mango Sticky Rice', 'Mango;Coconut;Rice', 'Letter from Leo (7 hearts)', 250, 1],
+  ['Poi', 'Taro Root×4', 'Letter from Leo (3 hearts)', 400, 1],
+  ['Tropical Curry', 'Coconut;Pineapple;Hot Pepper', 'Ginger Island resort (2,000g)', 500, 1],
+  ['Squid Ink Ravioli', 'Squid Ink;Wheat Flour;Tomato', 'Combat level 9', 150],
+  ['Moss Soup', 'Moss×20', 'Foraging level 3', 80],
+];
+
+/* ---------- Community Center bundles ----------
+   items: [name, qty, note]; need = slots to fill. */
+const BUNDLE_ROOMS = [
+  { room: 'Crafts Room', reward: 'Repairs the bridge to the Quarry', bundles: [
+    { n: 'Spring Foraging', reward: 'Spring Seeds ×30', items: [['Wild Horseradish'], ['Daffodil'], ['Leek'], ['Dandelion']] },
+    { n: 'Summer Foraging', reward: 'Summer Seeds ×30', items: [['Grape'], ['Spice Berry'], ['Sweet Pea']] },
+    { n: 'Fall Foraging', reward: 'Fall Seeds ×30', items: [['Common Mushroom'], ['Wild Plum'], ['Hazelnut'], ['Blackberry']] },
+    { n: 'Winter Foraging', reward: 'Winter Seeds ×30', items: [['Winter Root'], ['Crystal Fruit'], ['Snow Yam'], ['Crocus']] },
+    { n: 'Construction', reward: 'Charcoal Kiln', items: [['Wood', 99], ['Wood', 99, 'second stack'], ['Stone', 99], ['Hardwood', 10]] },
+    { n: 'Exotic Foraging', reward: "Autumn's Bounty ×5", need: 5, items: [['Coconut'], ['Cactus Fruit'], ['Cave Carrot'], ['Red Mushroom'], ['Purple Mushroom'], ['Maple Syrup'], ['Oak Resin'], ['Pine Tar'], ['Morel']] },
+  ]},
+  { room: 'Pantry', reward: 'Repairs the Greenhouse', bundles: [
+    { n: 'Spring Crops', reward: 'Speed-Gro ×20', items: [['Parsnip'], ['Green Bean'], ['Cauliflower'], ['Potato']] },
+    { n: 'Summer Crops', reward: 'Quality Sprinkler', items: [['Tomato'], ['Hot Pepper'], ['Blueberry'], ['Melon']] },
+    { n: 'Fall Crops', reward: 'Bee House', items: [['Corn'], ['Eggplant'], ['Pumpkin'], ['Yam']] },
+    { n: 'Quality Crops', reward: 'Preserves Jar', need: 3, items: [['Parsnip', 5, 'gold star'], ['Melon', 5, 'gold star'], ['Pumpkin', 5, 'gold star'], ['Corn', 5, 'gold star']] },
+    { n: 'Animal', reward: 'Cheese Press', need: 5, items: [['Large Milk'], ['Large Brown Egg'], ['Large Egg'], ['Large Goat Milk'], ['Wool'], ['Duck Egg']] },
+    { n: 'Artisan', reward: 'Keg', need: 6, items: [['Truffle Oil'], ['Cloth'], ['Goat Cheese'], ['Cheese'], ['Honey'], ['Jelly'], ['Apple'], ['Apricot'], ['Orange'], ['Peach'], ['Pomegranate'], ['Cherry']] },
+  ]},
+  { room: 'Fish Tank', reward: 'Removes the glittering boulder by the Mountain lake', bundles: [
+    { n: 'River Fish', reward: 'Deluxe Bait ×30', items: [['Sunfish'], ['Catfish'], ['Shad'], ['Tiger Trout']] },
+    { n: 'Lake Fish', reward: 'Dressed Spinner', items: [['Largemouth Bass'], ['Carp'], ['Bullhead'], ['Sturgeon']] },
+    { n: 'Ocean Fish', reward: 'Warp Totem: Beach ×5', items: [['Sardine'], ['Tuna'], ['Red Snapper'], ['Tilapia']] },
+    { n: 'Night Fishing', reward: 'Glow Ring', items: [['Walleye'], ['Bream'], ['Eel']] },
+    { n: 'Crab Pot', reward: 'Crab Pot ×3', need: 5, items: [['Lobster'], ['Crayfish'], ['Crab'], ['Cockle'], ['Mussel'], ['Shrimp'], ['Snail'], ['Periwinkle'], ['Oyster'], ['Clam']] },
+    { n: 'Specialty Fish', reward: "Dish O' The Sea ×5", items: [['Pufferfish'], ['Ghostfish'], ['Sandfish'], ['Woodskip']] },
+  ]},
+  { room: 'Boiler Room', reward: 'Repairs the minecarts (fast travel)', bundles: [
+    { n: "Blacksmith's", reward: 'Furnace', items: [['Copper Bar'], ['Iron Bar'], ['Gold Bar']] },
+    { n: "Geologist's", reward: 'Omni Geode ×5', items: [['Quartz'], ['Earth Crystal'], ['Frozen Tear'], ['Fire Quartz']] },
+    { n: "Adventurer's", reward: 'Small Magnet Ring', need: 2, items: [['Slime', 99], ['Bat Wing', 10], ['Solar Essence'], ['Void Essence']] },
+  ]},
+  { room: 'Bulletin Board', reward: 'A friendship boost with everyone in town', bundles: [
+    { n: "Chef's", reward: 'Pink Cake ×3', items: [['Maple Syrup'], ['Fiddlehead Fern'], ['Truffle'], ['Poppy'], ['Maki Roll'], ['Fried Egg']] },
+    { n: 'Dye', reward: 'Seed Maker', items: [['Red Mushroom'], ['Sea Urchin'], ['Sunflower'], ['Duck Feather'], ['Aquamarine'], ['Red Cabbage']] },
+    { n: 'Field Research', reward: 'Recycling Machine', items: [['Purple Mushroom'], ['Nautilus Shell'], ['Chub'], ['Frozen Geode']] },
+    { n: 'Fodder', reward: 'Heater', items: [['Wheat', 10], ['Hay', 10], ['Apple', 3]] },
+    { n: "Enchanter's", reward: 'Gold Bar ×5', items: [['Oak Resin'], ['Wine'], ["Rabbit's Foot"], ['Pomegranate']] },
+  ]},
+  { room: 'Vault', reward: 'Repairs the bus to the Calico Desert', bundles: [
+    { n: '2,500g', reward: 'Chocolate Cake ×3', items: [['2,500g', 1, 'pay in gold']] },
+    { n: '5,000g', reward: 'Quality Fertilizer ×30', items: [['5,000g', 1, 'pay in gold']] },
+    { n: '10,000g', reward: 'Lightning Rod', items: [['10,000g', 1, 'pay in gold']] },
+    { n: '25,000g', reward: 'Crystalarium', items: [['25,000g', 1, 'pay in gold']] },
+  ]},
+];
+
+/* ---------- Festivals & dated events ---------- */
+const FESTIVALS = [
+  { n: 'Egg Festival', s: 'Spring', d: [13], where: 'Pelican Town square', time: '9am–2pm', kw: 'easter eggs hunt',
+    what: 'Socialize, then join the egg hunt (find more eggs than Abigail to win a straw hat).',
+    tip: 'Bring gold. Pierre sells Strawberry Seeds here and nowhere else in Spring. Plant them that day for two harvests before Summer.' },
+  { n: 'Desert Festival', s: 'Spring', d: [15, 16, 17], where: 'Calico Desert', time: 'From 10am', kw: 'calico eggs race',
+    what: 'Games, a race and shops that take Calico Eggs, the festival currency.',
+    tip: 'Only reachable once the bus is fixed (Vault bundles). Normal days go on around it.' },
+  { n: 'Flower Dance', s: 'Spring', d: [24], where: 'Cindersap Forest (west, across the bridge south of the Wizard\'s Tower)', time: '9am–2pm', kw: 'dance partner',
+    what: 'Ask a marriage candidate to be your dance partner. They need at least 4 hearts to say yes.',
+    tip: 'All shops are closed. Pierre has a booth with unique items.' },
+  { n: 'Luau', s: 'Summer', d: [11], where: 'The Beach', time: '9am–2pm', kw: 'soup potluck governor',
+    what: 'Add one ingredient to the community soup before the Governor tastes it.',
+    tip: 'A gold or iridium-star item, or something pricey like a Pumpkin, Melon or Ancient Fruit, raises everyone\'s friendship. Trash or junk lowers it.' },
+  { n: 'Trout Derby', s: 'Summer', d: [20, 21], where: 'Cindersap Forest river (by Marnie\'s)', time: '6am–2am', kw: 'golden tag fishing contest',
+    what: 'Rainbow Trout bite all day in any weather. Each one has a chance to give a Golden Tag; trade tags at the booth for prizes.',
+    tip: 'Shops stay open and time keeps passing, so fit it into a normal day.' },
+  { n: 'Dance of the Moonlight Jellies', s: 'Summer', d: [28], where: 'The Beach', time: '10pm–12am', kw: 'jellyfish night',
+    what: 'A calm night event: watch glowing jellies swim past the docks.',
+    tip: 'The beach is closed until 10pm that day.' },
+  { n: 'Stardew Valley Fair', s: 'Fall', d: [16], where: 'Pelican Town', time: '9am–3pm', kw: 'grange display star tokens stardrop',
+    what: 'Set up a grange display for Lewis to judge, and play games for Star Tokens. You can buy a Stardrop for 2,000 tokens.',
+    tip: 'Fill all 9 display slots with high-quality items from different categories (crop, fruit, artisan, fish, mineral, animal product, cooking, forage). First place earns 1,000 tokens.' },
+  { n: "Spirit's Eve", s: 'Fall', d: [27], where: 'Pelican Town', time: '10pm–11:50pm', kw: 'halloween haunted maze',
+    what: 'Find your way through the haunted maze north of town. A Golden Pumpkin waits at the end.',
+    tip: 'Go in from 10pm. Pierre sells a Rarecrow and Jack-O-Lanterns here.' },
+  { n: 'Festival of Ice', s: 'Winter', d: [8], where: 'Cindersap Forest', time: '9am–2pm', kw: 'ice fishing contest snowman',
+    what: 'Ice-fishing contest against Willy, Pam and Elliott. Catch at least 5 fish to win.',
+    tip: 'First win gives two tackles, a Magnet and a Sailor\'s Cap.' },
+  { n: 'SquidFest', s: 'Winter', d: [12, 13], where: 'The Beach', time: '6am–2am', kw: 'squid fishing contest',
+    what: 'Squid bite all day. Catch enough of them for prizes at the booth.',
+    tip: 'Shops stay open and time passes as normal.' },
+  { n: 'Night Market', s: 'Winter', d: [15, 16, 17], where: 'The Beach', time: '5pm–2am', kw: 'boats submarine mermaid',
+    what: 'Boat shops, a mermaid show, and a submarine ride (until 11pm) where you can catch rare deep-sea fish.',
+    tip: 'Shops on land stay open. Visit each night: the stock and a free gift change daily.' },
+  { n: 'Feast of the Winter Star', s: 'Winter', d: [25], where: 'Pelican Town', time: '9am–2pm', kw: 'christmas secret santa gift exchange',
+    what: 'Secret gift exchange. Lewis\'s letter on Winter 18 tells you who your gift is for.',
+    tip: 'Bring something they love (check their page here).' },
+];
+
+const SEASON_EVENTS = [
+  { s: 'Spring', d: [15, 16, 17, 18], n: 'Salmonberry season', what: 'Shake or harvest bushes everywhere for Salmonberries (cheap energy food).' },
+  { s: 'Fall', d: [8, 9, 10, 11], n: 'Blackberry season', what: 'Bushes everywhere have Blackberries. Needed for the Fall Foraging Bundle.' },
+  { s: 'Spring', d: [5], y: 1, n: 'The Mines open', what: 'The landslide is cleared. Visit Marlon at the Adventurer\'s Guild by the mine entrance.' },
+  { s: 'Summer', d: [3], y: 1, n: 'Earthquake opens the Railroad', what: 'The path north of the Mountain opens: Railroad, the Spa (free energy), and later the Witch\'s Swamp.' },
+  { s: 'Winter', d: [18], n: 'Secret gift letter', what: 'Lewis tells you who to give a gift to at the Feast of the Winter Star (Winter 25).' },
+];
+
+/* ---------- Shops ---------- [name, owner, hours, open hour, close hour, closed text, closedDays (0=Sun), sells, keywords, where] */
+const SHOPS = [
+  { n: "Pierre's General Store", who: 'Pierre', open: 9, close: 17, hours: '9am–5pm', closed: 'Wednesdays, until the Community Center is restored', days: [3], ccOpens: true, where: 'Pelican Town, north of the square',
+    sells: 'Seeds for the current season, fruit tree saplings, fertilizer, Sugar, Wheat Flour, Rice, Oil, Vinegar, Bouquet, backpack upgrades (2,000g then 10,000g).', kw: 'seeds general store shop buy saplings backpack' },
+  { n: 'JojaMart', who: 'Morris', open: 9, close: 23, hours: '9am–11pm', closed: 'Closes for good if you finish the Community Center', days: [], where: 'Pelican Town, east side',
+    sells: 'Seeds (pricier than Pierre), Joja Cola. Joja membership is the alternative to the Community Center.', kw: 'joja supermarket membership' },
+  { n: "Marnie's Ranch", who: 'Marnie', open: 9, close: 16, hours: '9am–4pm', closed: 'Mondays and Tuesdays', days: [1, 2], where: 'Cindersap Forest, just south of your farm',
+    sells: 'Animals, Hay (50g), Heater, Milk Pail (1,000g), Shears (1,000g), Auto-Grabber, pet adoption.', kw: 'animals cows chickens hay milk pail shears ranch' },
+  { n: 'Blacksmith', who: 'Clint', open: 9, close: 16, hours: '9am–4pm', closed: 'Fridays, once the Community Center is restored', days: [], ccClosedDay: 5, where: 'Pelican Town, southeast across the river',
+    sells: 'Tool upgrades (2 days each), geode cracking (25g), copper/iron/gold ore, coal.', kw: 'tool upgrade geode crack ore coal smith' },
+  { n: "Carpenter's Shop", who: 'Robin', open: 9, close: 17, hours: '9am–5pm (4pm on Fridays)', closed: 'Tuesdays', days: [2], fri: 16, where: '24 Mountain Road, north of town',
+    sells: 'Farm buildings, house upgrades, Wood and Stone, furniture.', kw: 'robin builder buildings coop barn silo house upgrade wood' },
+  { n: 'Fish Shop', who: 'Willy', open: 9, close: 17, hours: '9am–5pm', closed: 'Saturdays, unless it is raining', days: [], satRain: true, where: 'The Beach, on the pier',
+    sells: 'Fishing rods, bait, tackle, Crab Pots, fish smoker.', kw: 'willy fishing rod bait tackle crab pot' },
+  { n: 'Stardrop Saloon', who: 'Gus', open: 12, close: 24, hours: 'Noon–midnight', closed: 'Never', days: [], where: 'Pelican Town, south of the square',
+    sells: 'Food and drinks, cooking recipes, an arcade game. Friday nights are busy.', kw: 'saloon bar pub food gus emily' },
+  { n: 'Clinic', who: 'Harvey', open: 9, close: 15, hours: '9am–3pm', closed: 'Never', days: [], where: 'Pelican Town, next to Pierre\'s',
+    sells: 'Energy Tonic, Muscle Remedy.', kw: 'harvey doctor medicine energy' },
+  { n: 'Museum', who: 'Gunther', open: 8, close: 18, hours: '8am–6pm', closed: 'Festival days', days: [], where: 'Pelican Town, southeast by the river',
+    sells: 'Donate artifacts and minerals for rewards. 60 donations earns the Rusty Key to the Sewers.', kw: 'library donate artifacts minerals gunther rewards books' },
+  { n: "Adventurer's Guild", who: 'Marlon & Gil', open: 14, close: 26, hours: '2pm–2am', closed: 'Never', days: [], where: 'Next to the Mines entrance',
+    sells: 'Weapons, boots, rings. Marlon pays rewards for slaying monsters.', kw: 'weapons sword marlon gil monster slayer' },
+  { n: 'Traveling Cart', who: 'Traveling merchant', open: 6, close: 20, hours: '6am–8pm', closed: 'Open only Fridays and Sundays', onlyDays: [5, 0], where: 'Cindersap Forest, north edge',
+    sells: 'Random rare items, often bundle items you are missing. Rare Seeds, Coffee Beans, Red Cabbage seeds in Year 1.', kw: 'cart pig wagon merchant rare' },
+  { n: 'Ice Cream Stand', who: 'Alex', open: 13, close: 17, hours: '1pm–5pm', closed: 'Wednesdays and rainy days; only in Summer', days: [3], summerOnly: true, where: 'Next to the Museum', sells: 'Ice Cream.', kw: 'alex summer' },
+  { n: 'Oasis', who: 'Sandy', open: 9, close: 24, hours: '9am–11:50pm', closed: 'Desert Festival days', days: [], where: 'Calico Desert (by bus)',
+    sells: 'Rhubarb, Starfruit, Beet and Cactus seeds; clothing; a daily special.', kw: 'sandy desert seeds starfruit rhubarb beet' },
+  { n: "Wizard's Tower", who: 'Wizard', open: 6, close: 23, hours: '6am–11pm', closed: 'Never', days: [], where: 'Cindersap Forest, west', sells: 'Magic buildings later on.', kw: 'wizard tower' },
+  { n: "Krobus's Shop", who: 'Krobus', open: 6, close: 26, hours: 'Always', closed: 'Never', days: [], where: 'The Sewers (needs the Rusty Key)',
+    sells: 'Void Eggs, Void and Solar Essence, rare seeds and items, a daily special.', kw: 'sewer shadow shop', spoil: 0 },
+];
+
+/* ---------- People who aren't gift-givers but get searched for ---------- */
+const OTHER_PEOPLE = [
+  ['Marlon', "Runs the Adventurer's Guild by the Mines. Gives monster-slaying goals and rewards.", 'eye patch guild monsters'],
+  ['Gunther', 'Curator of the Museum. Rewards you for donations.', 'museum curator library'],
+  ['Morris', 'Manager of JojaMart. Wants you to buy a Joja membership.', 'joja manager'],
+  ['Old Mariner', "Appears on the east Beach on rainy days (after you repair the bridge). Sells the Mermaid's Pendant for proposing.", 'sailor ghost beach propose'],
+  ['Junimos', 'Little forest spirits living in the Community Center. They reward you for completing bundles.', 'little green guys spirits forest sprites'],
+  ['Governor', 'Visits the Luau to taste the soup.', 'luau soup'],
+  ['Mr. Qi', 'Mysterious figure behind the Casino and late-game challenges.', 'blue guy casino challenges', 1],
+];
+
+/* ---------- How-to guides ---------- */
+const GUIDES = [
+  { n: 'Open the Community Center', g: 'Getting started', kw: 'junimo bundles community center start golden scroll',
+    steps: ['On or after Spring 5, walk into town from the Bus Stop (the road east of your farm) between 8am and 1pm on a day without rain. A short scene unlocks the old building.',
+      'Go inside and find the glowing golden scroll. You need to be able to read it.',
+      "A letter from the Wizard invites you to his tower in Cindersap Forest. Visit him and he'll let you read the Junimos' writing.",
+      'Each room has bundles. Bring the items listed and the Junimos reward you. Finishing a room repairs something in town.'],
+    tip: 'Use the Bundles tab here to tick off what you have donated. It highlights what you can still get this season.' },
+  { n: 'Tool upgrades', g: 'Farming & money', kw: 'upgrade axe pickaxe watering can hoe copper steel gold iridium clint',
+    steps: ['Take the tool, bars and gold to Clint at the Blacksmith. Each upgrade takes 2 days, and you can only upgrade one tool at a time.',
+      'Copper: 2,000g + 5 Copper Bars. Steel: 5,000g + 5 Iron Bars. Gold: 10,000g + 5 Gold Bars. Iridium: 25,000g + 5 Iridium Bars.',
+      'Make bars by putting 5 ore and 1 coal in a Furnace (Clint gives you the recipe after you bring him copper ore).'],
+    tip: 'Upgrade the watering can on rainy days, since you will not need it. The Steel Axe opens the Secret Woods.' },
+  { n: 'Upgrade your house', g: 'Farming & money', kw: 'house farmhouse kitchen robin upgrade marry cellar nursery',
+    steps: ['Talk to Robin at the Carpenter\'s Shop.', 'Upgrade 1: 10,000g + 450 Wood. Adds a kitchen so you can cook, and lets you get married.',
+      'Upgrade 2: 65,000g + 100 Hardwood. Adds a nursery for children.', 'Upgrade 3: 100,000g. Adds a cellar with casks for aging wine and cheese.'],
+    tip: 'Upgrades finish in about 3 days, and you can keep playing while Robin builds.' },
+  { n: 'Get to the Secret Woods', g: 'Places', kw: 'secret woods forest log hardwood stumps slimes',
+    steps: ['Go to the northwest corner of Cindersap Forest (left of your farm).', 'A big log blocks the path. Break it with a Steel Axe (second upgrade).',
+      'Inside: 6 hardwood stumps that regrow every day, seasonal mushrooms, Woodskip fish and slimes.'],
+    tip: 'Fiddlehead Fern (Chef\'s Bundle) and Morels grow here.' },
+  { n: 'Fix the bus to the Desert', g: 'Places', kw: 'bus desert calico sandy oasis vault pam skull',
+    steps: ['Finish all four Vault bundles in the Community Center (2,500g, 5,000g, 10,000g and 25,000g), or buy the bus repair from Joja (40,000g).',
+      'Pam drives the bus from the Bus Stop, 10am–5pm, for 500g.', 'In the desert: Sandy\'s Oasis shop, the Desert Trader and the Skull Cavern.'],
+    tip: 'Sandfish (Specialty Fish Bundle) only lives in the desert pond.' },
+  { n: 'Reach the Quarry', g: 'Places', kw: 'quarry bridge mountain crafts room ore',
+    steps: ['Finish the Crafts Room bundles in the Community Center.', 'The broken bridge east of the Mountain gets fixed overnight.', 'The Quarry is full of rocks, ore and gem nodes.'] },
+  { n: 'Into the Sewers (Krobus)', g: 'Places', kw: 'sewer rusty key krobus museum 60 donations',
+    steps: ['Donate 60 items (artifacts or minerals) to the Museum.', 'Gunther gives you the Rusty Key.', 'Open the sewer grate in south Pelican Town, or the one in south Cindersap Forest. Krobus has a shop down there.'] },
+  { n: 'Get the Skull Key', g: 'Places', kw: 'skull key cavern mines floor 120 bottom',
+    steps: ['Reach the bottom of the Mines, floor 120.', 'Open the chest to get the Skull Key.', 'The Skull Key opens the Skull Cavern in the desert and Junimo Kart in the Saloon.'],
+    tip: 'Elevators unlock every 5 floors. Bring food, a good weapon and staircases.' },
+  { n: 'Meet the Dwarf', g: 'Places', kw: 'dwarf mines translation guide dwarvish scrolls',
+    steps: ['A rock blocks the Dwarf\'s shop just inside the Mines entrance (right side). Break it with a Steel Pickaxe or a Cherry Bomb.',
+      'Find the 4 Dwarf Scrolls in the Mines and donate them to the Museum.', 'Gunther gives you the Dwarvish Translation Guide so you can talk to them.'] },
+  { n: 'Fix the Spa and Railroad', g: 'Places', kw: 'railroad spa bath house earthquake summer 3 energy',
+    steps: ['On Summer 3 of Year 1 an earthquake clears the path north of the Mountain.', 'Walk up to the Railroad. The Spa is there: soak in the pool to restore energy for free.'] },
+  { n: "Reach the Witch's Swamp", g: 'Places', kw: 'witch swamp hut dark talisman goblin void salmon magic ink', spoil: 1,
+    steps: ['Have the Rusty Key. A quest called Dark Talisman eventually arrives in the mail.', 'Ask Krobus about it: he opens the way to the Mutant Bug Lair in the Sewers. The Dark Talisman is in a chest there.',
+      'Use it on the magic barrier at the northeast end of the Railroad to reach the Witch\'s Swamp. Rescue the Wizard\'s Magic Ink from the hut.'] },
+  { n: 'Go to Ginger Island', g: 'Late game', kw: 'ginger island boat willy hardwood iridium battery tropical', spoil: 1,
+    steps: ['Finish the Community Center (or Joja route). Willy then opens the back room of his Fish Shop.',
+      'Repair the boat with 200 Hardwood, 5 Iridium Bars and 5 Battery Packs.', 'Tickets cost 1,000g round trip. The island has golden walnuts, a volcano dungeon and year-round crops.'] },
+  { n: 'Date and marry someone', g: 'Friends & family', kw: 'marriage marry wedding propose dating bouquet pendant spouse romance',
+    steps: ['Raise a marriage candidate to 8 hearts with gifts and daily chats.', 'Buy a Bouquet from Pierre (200g) and give it to them to start dating. Their heart limit goes up to 10.',
+      'Reach 10 hearts. Upgrade your house at least once.', "Buy a Mermaid's Pendant (5,000g) from the Old Mariner on the east Beach on a rainy day, and give it to them. The wedding is 3 days later."],
+    tip: 'Marriage candidates: Abigail, Alex, Elliott, Emily, Haley, Harvey, Leah, Maru, Penny, Sam, Sebastian, Shane.' },
+  { n: 'Make friends fast', g: 'Friends & family', kw: 'friendship hearts gifts talk befriend relationship',
+    steps: ['Talk to people every day (+20 points each).', 'You can give each person 2 gifts per week, plus one on their birthday.',
+      'Birthday gifts count 8 times as much. A loved gift on a birthday is a huge boost.', 'Loved gifts are worth the most. Universal loves that work on almost everyone: Prismatic Shard, Rabbit\'s Foot, Pearl, Golden Pumpkin, Magic Rock Candy.'],
+    tip: 'Friendship slowly fades if you go days without talking to someone. A quick hello keeps it up.' },
+  { n: 'Fishing basics', g: 'Farming & money', kw: 'fishing rod minigame bobber catch fish bait',
+    steps: ['Willy gives you a Bamboo Pole after you visit him (letter around Spring 2).', 'Cast, wait for the "!" and click. Keep the fish inside the green bar by holding and releasing.',
+      'At fishing level 2 you can buy a Fiberglass Rod (uses bait). At level 6, the Iridium Rod (uses bait and tackle).', 'Rain brings out different fish. Check the Fish list here for what bites today.'],
+    tip: 'Trash and easy fish still give experience. Eat food so you do not run out of energy.' },
+  { n: 'Raise farm animals', g: 'Farming & money', kw: 'animals coop barn chickens cows hay silo pet',
+    steps: ['Build a Coop (chickens) or Barn (cows) through Robin.', 'Build a Silo before you cut grass, so cut grass is stored as hay.', 'Buy animals from Marnie. Pet them daily and let them outside on sunny days.',
+      'Upgrade buildings for ducks, rabbits, goats, sheep and pigs.'],
+    tip: 'Buy a Milk Pail and Shears from Marnie. Happy animals give large and better-quality products.' },
+  { n: 'Before the season ends', g: 'Farming & money', kw: 'season change crops die end of season last day',
+    steps: ['On the 1st of a new season, crops that are out of season die (except the Greenhouse and Ginger Island).', 'Corn, Sunflower, Wheat (Summer → Fall), Coffee (Spring → Summer) and Ancient Fruit survive the change.',
+      'Count backwards: a crop that takes 13 days must be planted by day 15 at the latest.'],
+    tip: 'The Field Guide here tells you if it is too late to plant something.' },
+  { n: 'Make money early', g: 'Farming & money', kw: 'money gold rich profit early game',
+    steps: ['Spring: plant Strawberries at the Egg Festival, Cauliflower and Potatoes. Summer: Blueberries and Melons. Fall: Cranberries and Pumpkins.',
+      'Build Kegs and Preserves Jars: artisan goods sell for far more than raw crops.', 'Fish on rainy days. Crab Pots give steady income.', 'Sell to the shipping bin by your house; money arrives overnight.'] },
+  { n: 'Museum rewards', g: 'Getting started', kw: 'museum donate artifacts minerals rewards gunther',
+    steps: ['Bring any new artifact or mineral to Gunther and donate it.', 'Milestones give rewards: seeds, furniture, and the Rusty Key at 60 donations.',
+      'Dig artifact spots (wiggling worms in the ground) with a hoe; crack geodes at Clint\'s.'] },
+  { n: 'Energy and passing out', g: 'Getting started', kw: 'energy tired exhausted pass out sleep 2am night',
+    steps: ['Eat food to restore energy (forage, crops, cooking).', 'Go to bed before midnight to wake up with full energy.', 'If you are still awake at 2am you pass out, and lose some gold.'] },
+  { n: 'Joja or the Community Center?', g: 'Getting started', kw: 'joja membership community center choice',
+    steps: ['Community Center: donate items to bundles, slower but rewarding.', 'Joja: buy a 5,000g membership at JojaMart and pay to fix things instead. You can\'t switch back.'],
+    tip: 'Most players do the Community Center on their first farm.' },
+  { n: 'Green Rain', g: 'Farming & money', kw: 'green rain moss summer weird weather',
+    steps: ['Once each Summer it rains green. Trees grow mossy and weeds turn into big plants.', 'Chop the mossy trees for Moss and Fiddlehead Ferns.'] },
+  { n: 'Find the Stardrops', g: 'Late game', kw: 'stardrop energy max', spoil: 1,
+    steps: ['Each Stardrop permanently raises your max energy, and you eat it the moment you get it. There are seven:', 'Buy one at the Stardew Valley Fair for 2,000 star tokens.', 'Open the treasure chest on floor 100 of the Mines.', 'Buy one from Krobus in the Sewers for 20,000g.', 'Give a Sweet Gem Berry to Old Master Cannoli, the statue in the Secret Woods.', 'Your spouse or roommate gives you one at 12.5 hearts.', 'Willy mails you one after you catch every fish (Master Angler).', 'Donate all 95 items to the Museum.'] },
+  { n: 'Lost Books', g: 'Getting started', kw: 'lost books library tips',
+    steps: ['Lost Books turn up when you dig artifact spots with a hoe, in fishing treasure chests, and when tilling dirt in the Mines.', 'There are 21. Each one goes onto the Museum bookshelves, where you can read it anytime. Many are useful tips.'] },
+];
+
+/* Valley Almanac — data model: index, gift tastes, calendar, search. No DOM in here. */
+
+const SEASON_CODE = { Sp: 'Spring', Su: 'Summer', Fa: 'Fall', Wi: 'Winter' };
+const SEASON_IDX = { Spring: 0, Summer: 1, Fall: 2, Winter: 3 };
+
+function parseSeasons(code) {
+  if (!code || code === 'Any' || code === 'All') return null; // null = any season
+  return code.split(' ').filter(c => SEASON_CODE[c]).map(c => SEASON_CODE[c]);
+}
+function slug(s) { return s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, ''); }
+function fmtHour(h) {
+  const x = ((h % 24) + 24) % 24;
+  if (x === 0) return 'midnight';
+  if (x === 12) return 'noon';
+  return (x % 12 || 12) + (x < 12 ? 'am' : 'pm');
+}
+function fmtTimes(times) {
+  if (times.length === 1 && times[0][0] <= 6 && times[0][1] >= 26) return 'Any time';
+  return times.map(([a, b]) => fmtHour(a) + '–' + fmtHour(b)).join(', ');
+}
+function gold(n) { return n ? n.toLocaleString('en-US') + 'g' : ''; }
+
+/* ---------- Categories used by gift tastes ---------- */
+const FRUIT_TREE_FRUIT = ['Apple', 'Apricot', 'Cherry', 'Orange', 'Peach', 'Pomegranate'];
+const CATS = {
+  'Fruit': ['Strawberry', 'Blueberry', 'Melon', 'Hot Pepper', 'Starfruit', 'Cranberries', 'Grape', 'Ancient Fruit', 'Rhubarb', 'Cactus Fruit', 'Powdermelon', 'Pineapple', 'Mango', 'Banana', 'Coconut', 'Salmonberry', 'Blackberry', 'Wild Plum', 'Spice Berry', 'Crystal Fruit', ...FRUIT_TREE_FRUIT],
+  'Fruit Tree Fruit': FRUIT_TREE_FRUIT,
+  'Vegetable': ['Parsnip', 'Green Bean', 'Cauliflower', 'Potato', 'Garlic', 'Kale', 'Carrot', 'Unmilled Rice', 'Corn', 'Hops', 'Radish', 'Red Cabbage', 'Tomato', 'Wheat', 'Summer Squash', 'Amaranth', 'Artichoke', 'Beet', 'Bok Choy', 'Broccoli', 'Eggplant', 'Pumpkin', 'Yam', 'Tea Leaves', 'Taro Root', 'Fiddlehead Fern'],
+  'Flower': ['Blue Jazz', 'Tulip', 'Poppy', 'Summer Spangle', 'Sunflower', 'Fairy Rose', 'Sweet Pea', 'Crocus'],
+  'Mushroom': ['Common Mushroom', 'Chanterelle', 'Magma Cap', 'Morel', 'Red Mushroom', 'Purple Mushroom'],
+  'Egg': ['Egg', 'Brown Egg', 'Large Egg', 'Large Brown Egg', 'Duck Egg', 'Golden Egg', 'Ostrich Egg', 'Void Egg'],
+  'Milk': ['Milk', 'Large Milk', 'Goat Milk', 'Large Goat Milk'],
+};
+const CAT_ALIAS = { eggs: 'Egg', mushrooms: 'Mushroom', gems: 'Gem', flowers: 'Flower', vegetables: 'Vegetable', 'artisan goods': 'Artisan', 'foraged minerals': 'Foraged Mineral', 'geode minerals': 'Geode Mineral', artifacts: 'Artifact', books: 'Book', trinkets: 'Trinket', 'fruit tree fruit': 'Fruit Tree Fruit', fruit: 'Fruit', milk: 'Milk', fish: 'Fish', cooking: 'Cooking' };
+
+/* ---------- Build the index ---------- */
+const IDX = new Map();     // id -> entry
+const BY_NAME = new Map(); // lowercase name -> item-like entry (crop, fish, dish, item)
+const ITEM_TYPES = ['item', 'crop', 'fish', 'dish'];
+
+function addEntry(e) {
+  e.id = e.type + ':' + slug(e.name);
+  e.cats = e.cats || [];
+  IDX.set(e.id, e);
+  if (ITEM_TYPES.includes(e.type)) BY_NAME.set(e.name.toLowerCase(), e);
+  return e;
+}
+function itemByName(name) { return BY_NAME.get(name.toLowerCase()) || null; }
+function catsFor(name, extra) {
+  const c = new Set(extra || []);
+  for (const [cat, list] of Object.entries(CATS)) if (list.includes(name)) c.add(cat);
+  return [...c];
+}
+function mergeItem(name, patch) {
+  const ex = itemByName(name);
+  if (ex) {
+    if (patch.src) ex.src = ex.src ? ex.src + ' · ' + patch.src : patch.src;
+    if (patch.seasons !== undefined && ex.seasons) ex.seasons = patch.seasons === null ? null : [...new Set([...ex.seasons, ...patch.seasons])];
+    if (patch.kw) ex.kw = (ex.kw || '') + ' ' + patch.kw;
+    if (patch.cats) ex.cats = [...new Set([...ex.cats, ...patch.cats])];
+    return ex;
+  }
+  return addEntry(Object.assign({ name, type: 'item' }, patch));
+}
+
+function buildIndex() {
+  for (const v of VILLAGERS) {
+    const [s, d] = v.b.split(' ');
+    addEntry({ type: 'villager', name: v.n, v, bSeason: s, bDay: +d, kw: v.kw + ' ' + (v.m ? 'marriage candidate marry dateable single romance' : ''), text: v.who + ' ' + v.home, spoil: v.spoil });
+  }
+  for (const [n, who, kw, sp] of OTHER_PEOPLE) addEntry({ type: 'person', name: n, who, kw, text: who, spoil: sp });
+
+  for (const c of CROPS) {
+    const [name, s, days, regrow, seed, price, where, sell, notes] = c;
+    const seasons = parseSeasons(s);
+    addEntry({ type: 'crop', name, crop: { seasons, days, regrow, seed, price, where, sell, notes }, seasons, sell,
+      src: `Grow from ${seed}${price ? ' (' + gold(price) + ')' : ''} — ${where}.`, cats: catsFor(name), kw: seed + ' seed plant farm crop grow', text: notes });
+  }
+  for (const [name, s, price, sell] of FRUIT_TREES) {
+    addEntry({ type: 'item', name, seasons: parseSeasons(s), sell, cats: catsFor(name, ['Fruit Tree Fruit']),
+      src: `${name} tree: buy a sapling at Pierre's (${gold(price)}). Plant it with a clear 3×3 space; it fruits in ${SEASON_CODE[s]} after 28 days.`, kw: 'fruit tree sapling' });
+  }
+  for (const f of FISH) {
+    const [name, sell, where, times, s, weather, diff, note, spoil, legendary] = f;
+    const gi = s.includes('G');
+    const seasons = parseSeasons(s.replace(' G', '').replace('G', '').trim() || 'All');
+    addEntry({ type: 'fish', name, sell, seasons, cats: ['Fish'], spoil,
+      fish: { where, times, weather, diff, note, gi, legendary },
+      src: `Fish at ${where}. ${fmtTimes(times)}${weather !== 'Any' ? ', ' + (weather === 'Rain' ? 'rainy days only' : 'sunny days only') : ''}.`,
+      kw: 'fish catch fishing ' + (legendary ? 'legendary rare boss' : '') + ' ' + where, text: note || '' });
+  }
+  for (const [name, sell, water] of CRAB_POT) {
+    addEntry({ type: 'fish', name, sell, seasons: null, cats: ['Fish'], fish: { crab: water },
+      src: `Crab Pot in ${water === 'Ocean' ? 'the ocean' : 'fresh water (river, lake or pond)'}.`, kw: 'crab pot shellfish trap ' + water });
+  }
+  for (const [name, s, where, sell, kw, cat, spoil] of FORAGE) {
+    const seasons = parseSeasons(s);
+    mergeItem(name, { type: 'item', seasons, sell, src: where + '.', kw: 'forage foraging wild ' + kw, cats: catsFor(name, cat === 'Forage' || cat === 'Beach' ? ['Forage'] : [cat]), spoil });
+  }
+  for (const [name, cat, how, sell, kw, spoil] of ITEMS) {
+    mergeItem(name, { type: 'item', seasons: null, sell, src: how + '.', kw: kw + ' ' + cat, cats: catsFor(name, [cat]), spoil, catLabel: cat });
+  }
+  for (const [name, ing, source, sell, spoil] of RECIPES) {
+    addEntry({ type: 'dish', name, sell, seasons: null, cats: ['Cooking'], spoil,
+      dish: { ing: ing.split(';'), source }, src: `Cook it: ${ing.replace(/;/g, ', ')}. Recipe: ${source}.`, kw: 'recipe cook cooking food dish meal ' + ing.replace(/;/g, ' ') });
+  }
+  for (const f of FESTIVALS) addEntry({ type: 'festival', name: f.n, f, kw: 'festival event ' + f.s + ' ' + f.kw, text: f.what + ' ' + f.where });
+  for (const s of SHOPS) addEntry({ type: 'shop', name: s.n, shop: s, kw: 'shop store open hours closed buy ' + s.who + ' ' + s.kw, text: s.sells + ' ' + s.where, spoil: s.spoil });
+  for (const g of GUIDES) addEntry({ type: 'guide', name: g.n, g, kw: 'how to ' + g.kw + ' ' + g.g, text: g.steps.join(' '), spoil: g.spoil });
+
+  // Bundles: link each bundle item to its index entry
+  let bi = 0;
+  for (const room of BUNDLE_ROOMS) for (const b of room.bundles) {
+    b.room = room.room; b.id = 'b' + (bi++);
+    b.need = b.need || b.items.length;
+    b.items = b.items.map((it, k) => ({ name: it[0], qty: it[1] || 1, note: it[2] || '', key: b.id + '.' + k, bundle: b }));
+    addEntry({ type: 'bundle', name: b.n + (/\d/.test(b.n) ? ' Vault Bundle' : ' Bundle'), b, kw: 'bundle community center junimo ' + room.room + ' ' + b.items.map(i => i.name).join(' '), text: b.reward });
+  }
+}
+
+/* Uses: which bundles, recipes and villagers relate to an item. */
+function bundleUses(name) {
+  const out = [];
+  for (const room of BUNDLE_ROOMS) for (const b of room.bundles) for (const it of b.items) if (it.name === name) out.push(it);
+  return out;
+}
+function recipeUses(name) {
+  return RECIPES.filter(r => r[1].split(';').some(x => x.replace(/×\d+$/, '') === name)).map(r => r[0]);
+}
+
+/* ---------- Gift tastes ---------- */
+const TASTE_KEYS = ['love', 'like', 'dis', 'hate'];
+function parseTasteList(str) {
+  const names = new Set(), cats = [];
+  if (!str) return { names, cats };
+  for (let raw of str.split(';')) {
+    raw = raw.trim(); if (!raw) continue;
+    const m = raw.match(/^All ([A-Za-z' ]+?)(?:\s*\(except (.+)\))?$/);
+    if (m) {
+      const cat = CAT_ALIAS[m[1].toLowerCase()] || m[1];
+      const exc = new Set();
+      if (m[2]) m[2].replace('Jack Be Nimble, Jack Be Thick', 'JBNJBT').split(/,\s*&?\s*|\s+&\s+/).forEach(x => { x = x.trim().replace('JBNJBT', 'Jack Be Nimble, Jack Be Thick'); if (x) exc.add(x); });
+      cats.push({ cat, exc, raw });
+    } else names.add(raw);
+  }
+  return { names, cats };
+}
+function itemCats(name) { const e = itemByName(name); return e ? e.cats : catsFor(name); }
+function inCat(name, cats, rule) {
+  if (!cats.includes(rule.cat)) return false;
+  for (const x of rule.exc) {
+    if (x === name) return false;
+    const xc = CAT_ALIAS[x.toLowerCase()] || x;
+    if (cats.includes(xc)) return false;
+  }
+  return true;
+}
+const TASTES = new Map();
+function tasteTable(v) {
+  if (!TASTES.has(v.n)) { const t = {}; for (const k of TASTE_KEYS) t[k] = parseTasteList(v[k]); TASTES.set(v.n, t); }
+  return TASTES.get(v.n);
+}
+let UNIV_T;
+function giftTaste(v, name) {
+  const t = tasteTable(v);
+  UNIV_T = UNIV_T || Object.fromEntries(TASTE_KEYS.map(k => [k, parseTasteList(UNIVERSAL[k])]));
+  for (const k of TASTE_KEYS) if (t[k].names.has(name)) return k;
+  const cats = itemCats(name);
+  for (const k of TASTE_KEYS) if (t[k].cats.some(r => inCat(name, cats, r))) return k;
+  for (const k of TASTE_KEYS) if (UNIV_T[k].names.has(name)) return k;
+  for (const k of TASTE_KEYS) if (UNIV_T[k].cats.some(r => inCat(name, cats, r))) return k;
+  return 'neutral';
+}
+function whoLikes(name) {
+  const out = { love: [], like: [], dis: [], hate: [] };
+  for (const v of VILLAGERS) { const t = giftTaste(v, name); if (out[t]) out[t].push(v.n); }
+  return out;
+}
+/* Concrete items a villager loves (expands "All X" into real items from the index). */
+function lovedItems(v, key = 'love') {
+  const t = tasteTable(v)[key];
+  const names = [...t.names];
+  const extra = [];
+  if (t.cats.length) for (const e of IDX.values()) {
+    if (!['item', 'crop', 'fish', 'dish'].includes(e.type) || names.includes(e.name)) continue;
+    if (t.cats.some(r => inCat(e.name, e.cats, r)) && giftTaste(v, e.name) === key) extra.push(e.name);
+  }
+  return { names, cats: t.cats.map(r => r.raw), extra };
+}
+
+/* ---------- Calendar ---------- */
+function dow(day) { return day % 7; } // 0 = Sun; day 1 is a Monday
+function absDay(season, day, year) { return (year - 1) * 112 + SEASON_IDX[season] * 28 + day; }
+function fromAbs(n) { n = Math.max(1, n); const y = Math.floor((n - 1) / 112) + 1; const r = (n - 1) % 112; return { season: SEASONS[Math.floor(r / 28)], day: r % 28 + 1, year: y }; }
+function daysUntil(from, season, day) {
+  const a = absDay(from.season, from.day, 1), b = absDay(season, day, 1);
+  return (b - a + 112) % 112;
+}
+function eventsOn(season, day, year) {
+  const ev = [];
+  for (const f of FESTIVALS) if (f.s === season && f.d.includes(day)) ev.push({ kind: 'festival', name: f.n, e: IDX.get('festival:' + slug(f.n)) });
+  for (const v of VILLAGERS) { const [s, d] = v.b.split(' '); if (s === season && +d === day && (!v.from || year >= v.from)) ev.push({ kind: 'birthday', name: v.n, e: IDX.get('villager:' + slug(v.n)), spoil: v.spoil }); }
+  for (const x of SEASON_EVENTS) if (x.s === season && x.d.includes(day) && (!x.y || x.y === year)) ev.push({ kind: 'event', name: x.n, what: x.what });
+  return ev;
+}
+function queenOfSauce(season, day, year) {
+  if (dow(day) !== 0) return null;
+  if (year > 2) return { rerun: true };
+  const key = `Queen of Sauce: ${season} ${day}, Y${year}`;
+  const r = RECIPES.find(r => r[2].includes(key));
+  return r ? { recipe: r[0] } : null;
+}
+
+/* ---------- Shops ---------- */
+const DAY_FESTIVALS = ['Egg Festival', 'Flower Dance', 'Luau', 'Stardew Valley Fair', 'Festival of Ice', 'Feast of the Winter Star'];
+function shopStatus(s, st) {
+  const d = dow(st.day);
+  const fest = FESTIVALS.find(f => f.s === st.season && f.d.includes(st.day) && DAY_FESTIVALS.includes(f.n));
+  if (fest && s.n !== 'Oasis' && s.n !== "Krobus's Shop") return { closed: true, why: 'Closed for the ' + fest.n };
+  if (s.n === 'Oasis' && st.season === 'Spring' && [15, 16, 17].includes(st.day)) return { closed: true, why: 'Closed for the Desert Festival' };
+  if (s.onlyDays && !s.onlyDays.includes(d)) return { closed: true, why: 'Only here Fridays & Sundays' };
+  if (s.summerOnly && st.season !== 'Summer') return { closed: true, why: 'Summer only' };
+  if (s.n === 'Ice Cream Stand' && st.rain) return { closed: true, why: 'Closed when it rains' };
+  if (s.satRain && d === 6 && !st.rain) return { closed: true, why: 'Closed Saturdays (unless it rains)' };
+  if (s.n === 'JojaMart' && st.ccDone) return { closed: true, why: 'Closed for good' };
+  if ((s.days || []).includes(d) && !(s.ccOpens && st.ccDone)) return { closed: true, why: 'Closed ' + WEEKDAYS[d] + 's' };
+  if (s.ccClosedDay === d && st.ccDone) return { closed: true, why: 'Closed Fridays' };
+  if (st.hour != null) {
+    const close = s.fri && d === 5 ? s.fri : s.close;
+    if (st.hour < s.open) return { closed: true, why: 'Opens at ' + fmtHour(s.open), soon: true };
+    if (st.hour >= close) return { closed: true, why: 'Closed at ' + fmtHour(close) };
+    return { closed: false, why: 'Open until ' + fmtHour(close) };
+  }
+  return { closed: false, why: s.hours };
+}
+
+/* ---------- Season helpers ---------- */
+function inSeason(e, season) { return !e || e.seasons == null || e.seasons.includes(season); }
+function fishNow(st) {
+  const out = [];
+  for (const e of IDX.values()) {
+    if (e.type !== 'fish' || !e.fish || e.fish.crab) continue;
+    if (!inSeason(e, st.season)) continue;
+    const w = e.fish.weather;
+    if (w === 'Rain' && !st.rain) continue;
+    if (w === 'Sun' && st.rain) continue;
+    if (st.hour != null && !e.fish.times.some(([a, b]) => st.hour >= a && st.hour < b)) continue;
+    out.push(e);
+  }
+  return out;
+}
+function plantable(st) {
+  const left = 28 - st.day;
+  return CROPS.map(c => IDX.get('crop:' + slug(c[0]))).filter(e => e.crop.seasons && e.crop.seasons.includes(st.season)).map(e => {
+    const c = e.crop;
+    // multi-season crops keep growing into the following listed seasons
+    let extra = 0;
+    const si = SEASON_IDX[st.season];
+    for (let k = 1; k < 4; k++) { if (c.seasons.includes(SEASONS[(si + k) % 4])) extra += 28; else break; }
+    const room = left + extra;
+    const ok = c.days <= room;
+    const lastDay = Math.min(28, 28 + extra - c.days);
+    const ready = st.day + c.days; // harvest day, counted within this season (may spill past 28)
+    let harvests = 0;
+    if (ok) harvests = c.regrow ? 1 + Math.floor((28 + extra - ready) / c.regrow) : 1;
+    return { e, ok, lastDay: lastDay >= 1 ? lastDay : null, ready, harvests, left };
+  });
+}
+
+/* ---------- Search ---------- */
+const STOP = new Set('a an the is are do does did i im my me to for of in on at it its can could what whats which who whom when where how why should would will with from and or about any some that this there get got find buy catch make give gift gifts love loves like likes favorite favourite best good please tell need want show list day open hours time birthday bday born guy girl lady man woman person thing stuff someone somebody called named name one'.split(' '));
+const INTENTS = {
+  bday: ['birthday', 'bday', 'born', 'birth'],
+  gift: ['love', 'loves', 'like', 'likes', 'gift', 'gifts', 'give', 'present', 'favorite', 'favourite', 'want', 'wants'],
+  where: ['where', 'find', 'get', 'buy', 'catch', 'found', 'obtain', 'source', 'locate', 'sell', 'sells'],
+  hours: ['open', 'hours', 'close', 'closed', 'closes', 'opens'],
+  how: ['how', 'unlock', 'reach', 'access'],
+  when: ['when', 'date'],
+  plant: ['plant', 'grow', 'seed', 'seeds'],
+  who: ['who', 'guy', 'girl', 'lady', 'man', 'woman', 'person', 'kid', 'boy', 'dude', 'someone', 'somebody'],
+};
+function norm(s) { return s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/['’]s\b/g, '').replace(/[^a-z0-9]+/g, ' ').trim(); }
+function stem(w) {
+  if (w.length > 4 && w.endsWith('ies')) return w.slice(0, -3) + 'y';
+  if (w.length > 4 && /(ches|shes|xes|sses)$/.test(w)) return w.slice(0, -2);
+  if (w.length > 3 && w.endsWith('s') && !w.endsWith('ss')) return w.slice(0, -1);
+  return w;
+}
+const SYN = { married: 'marry', marriage: 'marry', wedding: 'marry', spouse: 'marry', propose: 'marry', proposal: 'marry', kids: 'kid', children: 'kid', child: 'kid', money: 'money', cash: 'money', gold: 'gold', xmas: 'christmas', halloween: 'halloween' };
+function toks(s) { return norm(s).split(' ').filter(Boolean).map(w => SYN[w] || stem(w)); }
+function dl(a, b, max) { // Damerau–Levenshtein with early exit
+  if (Math.abs(a.length - b.length) > max) return max + 1;
+  const d = [];
+  for (let i = 0; i <= a.length; i++) { d[i] = [i]; }
+  for (let j = 1; j <= b.length; j++) d[0][j] = j;
+  for (let i = 1; i <= a.length; i++) {
+    let rowMin = Infinity;
+    for (let j = 1; j <= b.length; j++) {
+      const c = a[i - 1] === b[j - 1] ? 0 : 1;
+      d[i][j] = Math.min(d[i - 1][j] + 1, d[i][j - 1] + 1, d[i - 1][j - 1] + c);
+      if (i > 1 && j > 1 && a[i - 1] === b[j - 2] && a[i - 2] === b[j - 1]) d[i][j] = Math.min(d[i][j], d[i - 2][j - 2] + 1);
+      rowMin = Math.min(rowMin, d[i][j]);
+    }
+    if (rowMin > max) return max + 1;
+  }
+  return d[a.length][b.length];
+}
+function tokMatch(q, t) {
+  if (q === t) return 1;
+  if (q.length >= 2 && t.startsWith(q)) return 0.85 - Math.min(0.25, (t.length - q.length) * 0.03);
+  if (t.length >= 4 && q.startsWith(t)) return 0.55;
+  const max = q.length >= 8 ? 2 : q.length >= 4 ? 1 : 0;
+  if (max) { const d = dl(q, t, max); if (d <= max) return d === 1 ? 0.72 : 0.5; }
+  return 0;
+}
+const TYPE_LABEL = { villager: 'Villager', person: 'Character', crop: 'Crop', item: 'Item', fish: 'Fish', dish: 'Recipe', festival: 'Festival', shop: 'Shop', guide: 'How-to', bundle: 'Bundle' };
+let SEARCH_PREP = null;
+function prepSearch() {
+  SEARCH_PREP = [...IDX.values()].map(e => ({ e, name: toks(e.name), nameStr: norm(e.name), kw: toks((e.kw || '') + ' ' + (e.catLabel || '') + ' ' + (e.cats || []).join(' ')), text: toks((e.text || '') + ' ' + (e.src || '')) }));
+}
+function detectIntents(words) {
+  const set = new Set();
+  for (const [k, list] of Object.entries(INTENTS)) if (words.some(w => list.includes(w))) set.add(k);
+  return set;
+}
+function search(query, limit = 12) {
+  if (!SEARCH_PREP) prepSearch();
+  const rawWords = norm(query).split(' ').filter(Boolean);
+  if (!rawWords.length) return { results: [], intents: new Set() };
+  const intents = detectIntents(rawWords);
+  let words = rawWords.filter(w => !STOP.has(w));
+  if (!words.length) words = rawWords;
+  words = words.map(w => SYN[w] || stem(w));
+  const qStr = norm(query);
+  const res = [];
+  for (const p of SEARCH_PREP) {
+    let score = 0, matched = 0, nameHits = 0;
+    for (const w of words) {
+      let best = 0, inName = false;
+      for (const t of p.name) { const m = tokMatch(w, t) * 3; if (m > best) { best = m; inName = true; } }
+      for (const t of p.kw) { const m = tokMatch(w, t) * 1.5; if (m > best) { best = m; inName = false; } }
+      if (best < 1) for (const t of p.text) { const m = tokMatch(w, t) * 0.7; if (m > best) { best = m; inName = false; } }
+      if (best > 0) { matched++; score += best; if (inName) nameHits++; }
+    }
+    if (!matched) continue;
+    const frac = matched / words.length;
+    score *= Math.pow(frac, 1.5);
+    if (p.nameStr === qStr || p.nameStr === words.join(' ')) score += 6;
+    else if (nameHits === p.name.length && nameHits === words.length) score += 3;
+    else if ((p.nameStr + ' ').startsWith(qStr + ' ')) score += 2;
+    else if (p.nameStr.startsWith(qStr)) score += 0.5;
+    const t = p.e.type;
+    if (intents.has('bday') || intents.has('gift')) { if (t === 'villager') score *= 1.6; }
+    if (intents.has('hours') && t === 'shop') score *= 1.8;
+    if (intents.has('who') && (t === 'villager' || t === 'person')) score *= 2;
+    if (intents.has('how') && t === 'guide') score *= 1.4;
+    if (intents.has('plant') && t === 'crop') score *= 1.4;
+    if (intents.has('when') && (t === 'festival' || t === 'villager')) score *= 1.3;
+    if (t === 'bundle') score *= 0.75;
+    if (score > 0.9) res.push({ e: p.e, score });
+  }
+  res.sort((a, b) => b.score - a.score);
+  return { results: res.slice(0, limit), intents, words };
+}
+function suggest(query) {
+  // closest names, for "did you mean"
+  const q = norm(query).replace(/ /g, '');
+  if (q.length < 3) return [];
+  return [...IDX.values()].map(e => ({ e, d: dl(q, norm(e.name).replace(/ /g, ''), 4) })).filter(x => x.d <= 4).sort((a, b) => a.d - b.d).slice(0, 4).map(x => x.e);
+}
+
+/* Valley Almanac — interface. */
+buildIndex();
+
+/* ---------- State ---------- */
+const KEY = 'valley-almanac-v1';
+const SAVED = ['dateSet', 'season', 'day', 'year', 'rain', 'hour', 'checks', 'spoilers', 'ccDone', 't'];
+const state = { season: 'Spring', day: 1, year: 1, rain: false, hour: null, checks: {}, spoilers: false, ccDone: false, t: 0,
+  tab: 'today', field: 'crops', fieldSeason: null, people: 'soon', bundleNow: false, fishNowOnly: true };
+try { const s = JSON.parse(localStorage.getItem(KEY) || 'null'); if (s) Object.assign(state, s); } catch (e) { /* storage unavailable */ }
+let cloud = { ref: null, ok: false, timer: 0 };
+
+function save(local) {
+  state.t = Date.now();
+  try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) { /* ignore */ }
+  if (!local && cloud.ref) { clearTimeout(cloud.timer); cloud.timer = setTimeout(pushCloud, 1200); }
+}
+function pick(o) { const r = {}; for (const k of SAVED) if (o[k] !== undefined) r[k] = o[k]; return r; }
+function pushCloud() { if (!cloud.ref) return; cloud.ref.set(pick(state)).then(() => { cloud.ok = true; syncNote(); }).catch(() => { cloud.ok = false; syncNote(); }); }
+async function initCloud() {
+  if (!window.claude || !window.claude.use) return;
+  try {
+    const [db, user] = await Promise.all([claude.use('db'), claude.use('user')]);
+    if (!db || !user) return;
+    const id = await user.id();
+    if (!id) return;
+    cloud.ref = db.collection('data/users/' + id).doc('almanac');
+    const snap = await cloud.ref.get();
+    const remote = snap.exists ? snap.data() : null;
+    cloud.ok = true;
+    if (remote && (remote.t || 0) > (state.t || 0)) { Object.assign(state, pick(remote)); save(true); render(); }
+    else if (state.t && (!remote || state.t > (remote.t || 0))) pushCloud();
+  } catch (e) { cloud.ok = false; }
+  syncNote();
+}
+function syncNote() {
+  const el = document.getElementById('syncNote');
+  if (el) el.textContent = cloud.ok ? 'Your date and bundle checks are saved to your Claude account, so they follow you between devices.' : 'Your date and bundle checks are saved in this browser.';
+}
+
+/* ---------- Helpers ---------- */
+const $ = s => document.querySelector(s);
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const seasonCls = s => 'c-' + s.toLowerCase();
+function ccDone() { return state.ccDone || BUNDLE_ROOMS.every(r => r.bundles.every(bundleDone)); }
+function ctx() { return { season: state.season, day: state.day, year: state.year, rain: state.rain, hour: state.hour, ccDone: ccDone() }; }
+function showSpoil(e) { return state.spoilers || !e || !e.spoil; }
+function idFor(name) {
+  const it = itemByName(name); if (it) return it.id;
+  const v = IDX.get('villager:' + slug(name)) || IDX.get('person:' + slug(name)); return v ? v.id : null;
+}
+function chip(name, opts = {}) {
+  const id = opts.id || idFor(name);
+  const e = id && IDX.get(id);
+  if (e && !showSpoil(e)) return '';
+  const now = opts.mark && e && e.seasons && e.seasons.includes(state.season);
+  const cls = 'chip' + (opts.cls ? ' ' + opts.cls : '') + (now ? ' now' : '');
+  const label = esc(opts.label || name);
+  return id ? `<button class="${cls}" data-open="${esc(id)}"${now ? ' title="In season now"' : ''}>${label}</button>` : `<span class="${cls} plain">${label}</span>`;
+}
+function seasonTags(seasons) {
+  if (!seasons) return '<span class="stag any">Any season</span>';
+  return seasons.map(s => `<span class="stag ${seasonCls(s)}">${s}</span>`).join('');
+}
+function dateLabel(s, d) { return `${s} ${d}`; }
+function relDays(n) { return n === 0 ? 'today' : n === 1 ? 'tomorrow' : `in ${n} days`; }
+function bundleCount(b) { return b.items.filter(i => state.checks[i.key]).length; }
+function bundleDone(b) { return bundleCount(b) >= b.need; }
+
+/* ---------- Pixel icons ---------- */
+const PIX = {
+  heart: ['.XX.XX.', 'XXXXXXX', 'XXXXXXX', '.XXXXX.', '..XXX..', '...X...'],
+  sun: ['....X....', '.X.....X.', '...XXX...', '..XXXXX..', 'X.XXXXX.X', '..XXXXX..', '...XXX...', '.X.....X.', '....X....'],
+  rain: ['...XXX...', '.XXXXXXX.', 'XXXXXXXXX', '.XXXXXXX.', '.........', '.X..X..X.', 'X..X..X..', '.........'],
+  sprout: ['.XX...XX.', 'XXXX.XXXX', '.XXX.XXX.', '....X....', '....X....', '....X....', '..XXXXX..', '.XXXXXXX.'],
+  star: ['...X...', '..XXX..', 'XXXXXXX', '.XXXXX.', '..XXX..', '.XX.XX.', '.X...X.'],
+  book: ['.XXX.XXX.', 'X...X...X', 'X.X.X.X.X', 'X...X...X', 'X.X.X.X.X', 'X...X...X', '.XXX.XXX.'],
+  search: ['.XXX....', 'X...X...', 'X...X...', 'X...X...', '.XXX....', '....XX..', '.....XX.', '......XX'],
+  fish: ['.XXXX...X', 'XXXXXX.XX', 'X.XXXXXX.', 'XXXXXX.XX', '.XXXX...X'],
+  gift: ['.XX.XX.', 'XXXXXXX', '...X...', 'XXXXXXX', 'X..X..X', 'X..X..X', 'XXXXXXX'],
+  close: ['X.....X', '.X...X.', '..X.X..', '...X...', '..X.X..', '.X...X.', 'X.....X'],
+  back: ['...X...', '..X....', '.X.....', 'XXXXXXX', '.X.....', '..X....', '...X...'],
+  cal: ['.X...X.', 'XXXXXXX', 'X.....X', 'X.X.X.X', 'X.....X', 'X.X.X.X', 'XXXXXXX'],
+};
+function pix(name, size = 16) {
+  const rows = PIX[name]; const w = rows[0].length, h = rows.length;
+  let r = '';
+  rows.forEach((row, y) => [...row].forEach((c, x) => { if (c === 'X') r += `<rect x="${x}" y="${y}" width="1.02" height="1.02"/>`; }));
+  return `<svg class="pix" viewBox="0 0 ${w} ${h}" width="${size}" height="${Math.round(size * h / w)}" aria-hidden="true" fill="currentColor" shape-rendering="crispEdges">${r}</svg>`;
+}
+
+/* ---------- Header / date ---------- */
+function renderHeader() {
+  document.body.dataset.season = state.season;
+  $('#dMain').textContent = dateLabel(state.season, state.day);
+  $('#dSub').textContent = `${WEEKDAYS[dow(state.day)]} · Year ${state.year}`;
+  $('#wxBtn').innerHTML = state.rain ? pix('rain', 18) + '<span>Rain</span>' : pix('sun', 18) + '<span>Sunny</span>';
+  $('#wxBtn').setAttribute('aria-pressed', state.rain ? 'true' : 'false');
+  $('#hourSel').value = state.hour == null ? '' : String(state.hour);
+  document.querySelectorAll('.tabbtn').forEach(b => b.setAttribute('aria-current', b.dataset.tab === state.tab ? 'page' : 'false'));
+}
+function shiftDay(n) {
+  const a = absDay(state.season, state.day, state.year) + n;
+  Object.assign(state, fromAbs(a)); state.dateSet = 1;
+  save(); render();
+}
+
+/* ---------- Today ---------- */
+function todayView() {
+  const st = ctx();
+  const evs = eventsOn(st.season, st.day, st.year).filter(e => !e.spoil || state.spoilers);
+  const d = dow(st.day);
+  const items = [];
+  for (const ev of evs) {
+    if (ev.kind === 'festival') {
+      const f = ev.e.f;
+      items.push(`<li class="hl fest"><b>${chip(f.n, { id: ev.e.id, cls: 'link' })}</b> today, ${esc(f.where)}, ${esc(f.time)}. ${esc(f.tip)}</li>`);
+    } else if (ev.kind === 'birthday') {
+      const v = ev.e.v; const lv = lovedItems(v);
+      items.push(`<li class="hl bday">${pix('gift', 14)} It's <b>${chip(v.n, { id: ev.e.id, cls: 'link' })}'s birthday</b>. A gift today counts 8×. Loves: <span class="chips">${lv.names.slice(0, 6).map(n => chip(n, { mark: 1 })).join('')}</span></li>`);
+    } else items.push(`<li><b>${esc(ev.name)}.</b> ${esc(ev.what)}</li>`);
+  }
+  const qs = queenOfSauce(st.season, st.day, st.year);
+  if (qs && qs.recipe) items.push(`<li>Sunday TV: the Queen of Sauce teaches ${chip(qs.recipe, { cls: 'link' })}. Watch it on your TV to learn it.</li>`);
+  else if (qs && qs.rerun) items.push(`<li>Sunday TV: the Queen of Sauce shows a recipe. Watch it to learn it.</li>`);
+  if (d === 3) items.push(`<li>Wednesday TV: the Queen of Sauce reruns an older recipe you may have missed.</li>`);
+  if (d === 5 || d === 0) items.push(`<li>The ${chip('Traveling Cart', { id: 'shop:traveling-cart', cls: 'link' })} is in Cindersap Forest, 6am–8pm. Check it for bundle items you are missing.</li>`);
+  if (st.rain) items.push(`<li>Rain waters your crops for you. Different fish are biting, and Willy's shop is open even if it's Saturday.</li>`);
+  const left = 28 - st.day;
+  if (left <= 6) items.push(`<li class="hl warn"><b>${left === 0 ? 'Last day of ' + st.season + '.' : left + ' day' + (left > 1 ? 's' : '') + ' left in ' + st.season + '.'}</b> Crops that don't grow next season die overnight on the 1st. Harvest what you can.</li>`);
+  const closed = SHOPS.filter(s => showSpoil({ spoil: s.spoil })).map(s => ({ s, r: shopStatus(s, Object.assign({}, st, { hour: null })) })).filter(x => x.r.closed && !/Summer only|Fridays & Sundays|Closed for good/.test(x.r.why));
+  if (closed.length) items.push(`<li>Closed today: ${closed.map(x => chip(x.s.n, { id: 'shop:' + slug(x.s.n), cls: 'link' })).join(', ')}.</li>`);
+
+  // coming up
+  const up = [];
+  for (let k = 1; k <= 7; k++) {
+    const t = fromAbs(absDay(st.season, st.day, st.year) + k);
+    for (const ev of eventsOn(t.season, t.day, t.year)) if (!ev.spoil || state.spoilers) up.push({ k, t, ev });
+  }
+  const upHtml = up.length ? up.map(({ k, t, ev }) => `<li><span class="when">${k === 1 ? 'Tomorrow' : WEEKDAYS[dow(t.day)] + ' ' + t.day}</span><span>${ev.kind === 'birthday' ? pix('gift', 12) + ' ' + chip(ev.name, { id: ev.e.id, cls: 'link' }) + "'s birthday" : ev.kind === 'festival' ? pix('star', 12) + ' ' + chip(ev.name, { id: ev.e.id, cls: 'link' }) : esc(ev.name)}</span></li>`).join('') : '<li class="muted">Nothing special this week.</li>';
+
+  // needed seasonal bundle items
+  const need = [];
+  for (const room of BUNDLE_ROOMS) for (const b of room.bundles) {
+    if (bundleDone(b)) continue;
+    for (const it of b.items) {
+      if (state.checks[it.key]) continue;
+      const e = itemByName(it.name);
+      if (e && e.seasons && e.seasons.length < 4 && e.seasons.includes(st.season) && !need.find(n => n.name === it.name)) need.push(it);
+    }
+  }
+  const needHtml = need.length ? `<div class="chips">${need.map(it => chip(it.name)).join('')}</div>` : `<p class="muted">Nothing seasonal left to collect for bundles this ${st.season}.</p>`;
+
+  const plant = plantable(st).filter(p => p.e.crop.seasons.length < 4);
+  const ok = plant.filter(p => p.ok).sort((a, b) => (a.lastDay || 0) - (b.lastDay || 0));
+  const late = plant.filter(p => !p.ok);
+  const plantHtml = ok.map(p => `<li>${chip(p.e.name, { id: p.e.id, cls: 'link' })}<span class="meta">${p.e.crop.days} days${p.e.crop.regrow ? ', then every ' + p.e.crop.regrow : ''}${/^Pierre's$/.test(p.e.crop.where) ? '' : ' · ' + esc(p.e.crop.where.split(',')[0])}</span><span class="pill ${p.lastDay - st.day <= 2 ? 'warn' : ''}">${p.lastDay >= 28 ? 'plant any day' : p.lastDay === st.day ? 'last day to plant' : 'plant by ' + p.lastDay}</span></li>`).join('')
+    + (late.length ? `<li class="muted small">Too late this season: ${late.map(p => esc(p.e.name)).join(', ')}.</li>` : '');
+
+  const fish = fishNow(st).filter(showSpoil).filter(e => !e.fish.legendary);
+  const byLoc = {};
+  const LOCS = [['Ocean', /Ocean/], ['Rivers (town & forest)', /River/], ['Mountain Lake', /Mountain Lake/], ['Forest Pond', /Forest Pond/], ['Forest Waterfalls', /Waterfalls/], ['Secret Woods', /Secret Woods/], ['Sewers', /Sewers/], ['The Mines', /Mines/], ['The Desert', /Desert/], ['Night Market', /Night Market/]];
+  for (const e of fish) { let hit = false; for (const [loc, re] of LOCS) if (re.test(e.fish.where)) { (byLoc[loc] = byLoc[loc] || []).push(e); hit = true; } if (!hit) (byLoc.Elsewhere = byLoc.Elsewhere || []).push(e); }
+  const fishHtml = Object.entries(byLoc).map(([loc, list]) => `<div class="locrow"><span class="loc">${esc(loc)}</span><span class="chips">${list.map(e => chip(e.name, { id: e.id, label: e.name + (e.fish.weather === 'Rain' ? ' ☂' : '') })).join('')}</span></div>`).join('');
+
+  const forage = FORAGE.filter(f => { const s = parseSeasons(f[1]); return s && s.includes(st.season); }).map(f => chip(f[0])).join('');
+
+  return `
+  <section class="panel today">
+    <div class="today-head">
+      <div><div class="eyebrow">Today on the farm</div><h2>${esc(dateLabel(st.season, st.day))} <span class="sub">${['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][d]}, Year ${st.year}</span></h2></div>
+      <button class="btn small" data-action="nextday">Next day ›</button>
+    </div>
+    ${!state.dateSet ? `<div class="firstrun"><p><b>Where are you in your game?</b> Set the season and day once, then tap <i>Next day</i> each morning. Everything here follows that date.</p><button class="btn" data-action="date">Set my date</button></div>` : ''}
+    <ul class="today-list">${items.join('') || '<li class="muted">A quiet day. Good for farming, fishing or the Mines.</li>'}</ul>
+  </section>
+  <div class="grid2">
+    <section class="panel"><h3>${pix('cal', 14)} This week</h3><ul class="uplist">${upHtml}</ul></section>
+    <section class="panel"><h3>${pix('star', 14)} Grab it while it's ${esc(st.season)}</h3><p class="muted small">Seasonal bundle items you haven't ticked off yet.</p>${needHtml}</section>
+  </div>
+  <section class="panel"><h3>${pix('cal', 14)} ${esc(st.season)}, Year ${st.year}</h3>${calendar(st.season, st.year, st.day, true)}<p class="muted small">Tap a day to jump to it.</p></section>
+  <div class="grid2">
+    <section class="panel"><h3>${pix('sprout', 14)} Plant today</h3><p class="muted small">What still has time to grow before ${esc(SEASONS[(SEASON_IDX[st.season] + 1) % 4])} 1.</p><ul class="plantlist">${plantHtml || '<li class="muted">Nothing grows outdoors this season. The Greenhouse and garden pots still work.</li>'}</ul></section>
+    <section class="panel"><h3>${pix('fish', 16)} Biting ${state.hour == null ? 'today' : 'at ' + fmtHour(state.hour)}${st.rain ? ' (rain)' : ''}</h3><p class="muted small">${state.hour == null ? 'Set a time at the top to narrow this down.' : 'Change the time at the top to see other fish.'}</p>${fishHtml || '<p class="muted">Nothing is biting at this hour.</p>'}</section>
+  </div>
+  <section class="panel"><h3>${pix('sprout', 14)} Forage in ${esc(st.season)}</h3><div class="chips">${forage}</div></section>`;
+}
+
+function calendar(season, year, selDay, settable) {
+  const head = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map(d => `<div class="cal-h">${d}</div>`).join('');
+  let cells = '';
+  for (let day = 1; day <= 28; day++) {
+    const evs = eventsOn(season, day, year).filter(e => !e.spoil || state.spoilers);
+    const marks = evs.map(e => e.kind === 'festival' ? `<span class="m fest" title="${esc(e.name)}">${esc(e.name)}</span>` : e.kind === 'birthday' ? `<span class="m bday" title="${esc(e.name)}'s birthday">${esc(e.name)}</span>` : `<span class="m ev" title="${esc(e.name)}">${esc(e.name)}</span>`).join('');
+    cells += `<button class="cal-d${day === selDay ? ' sel' : ''}" ${settable ? `data-setday="${day}" data-setseason="${season}"` : 'tabindex="-1"'} aria-label="${season} ${day}${evs.length ? ': ' + esc(evs.map(e => e.name).join(', ')) : ''}"><span class="n">${day}</span>${marks}</button>`;
+  }
+  return `<div class="cal">${head}${cells}</div>`;
+}
+
+/* ---------- Bundles ---------- */
+function bundlesView() {
+  const st = ctx();
+  let total = 0, done = 0;
+  for (const r of BUNDLE_ROOMS) for (const b of r.bundles) { total++; if (bundleDone(b)) done++; }
+  const rooms = BUNDLE_ROOMS.map(room => {
+    const rDone = room.bundles.filter(bundleDone).length;
+    const bundles = room.bundles.map(b => {
+      const c = bundleCount(b);
+      const fin = c >= b.need;
+      let items = b.items;
+      if (state.bundleNow && !fin) items = items.filter(it => state.checks[it.key] || inSeason(itemByName(it.name), st.season));
+      if (state.bundleNow && fin) items = [];
+      const rows = items.map(it => itemRow(it, st)).join('');
+      return `<div class="bundle${fin ? ' done' : ''}">
+        <div class="bundle-h"><h4>${esc(b.n)}</h4><span class="count">${c}/${b.need}${b.need < b.items.length ? ` <span class="muted">(any ${b.need} of ${b.items.length})</span>` : ''}</span></div>
+        <div class="bar"><span style="width:${Math.min(100, c / b.need * 100)}%"></span></div>
+        ${rows ? `<ul class="items">${rows}</ul>` : state.bundleNow && !fin ? '<p class="muted small">Nothing for this bundle this season.</p>' : ''}
+        <p class="reward">Reward: ${esc(b.reward)}</p>
+      </div>`;
+    }).join('');
+    return `<section class="panel room"><div class="room-h"><h3>${esc(room.room)}</h3><span class="pill${rDone === room.bundles.length ? ' good' : ''}">${rDone}/${room.bundles.length}</span></div><p class="muted small">Finish the room: ${esc(room.reward)}.</p><div class="bundles">${bundles}</div></section>`;
+  }).join('');
+  return `<section class="panel intro">
+    <div class="room-h"><h2>Community Center</h2><span class="pill${done === total ? ' good' : ''}">${done} of ${total} bundles</span></div>
+    <div class="bar big"><span style="width:${done / total * 100}%"></span></div>
+    <label class="toggle"><input type="checkbox" id="bundleNow" ${state.bundleNow ? 'checked' : ''}> Only show what I can get in ${esc(st.season)}</label>
+    <p class="muted small">Tick items as you put them in. Items with a season dot are only around in that season.</p>
+  </section>${rooms}`;
+}
+function itemRow(it, st) {
+  const e = itemByName(it.name);
+  const checked = !!state.checks[it.key];
+  const seasonal = e && e.seasons && e.seasons.length < 4;
+  const nowOk = inSeason(e, st.season);
+  const how = e ? e.src.split(' · ')[0] : (it.note === 'pay in gold' ? 'Pay with gold at the Vault.' : '');
+  return `<li class="it${checked ? ' got' : ''}">
+    <label class="check"><input type="checkbox" data-check="${it.key}" ${checked ? 'checked' : ''} aria-label="Donated ${esc(it.name)}"><span class="box"></span></label>
+    <div class="it-main">
+      <div class="it-name">${e ? chip(it.name, { cls: 'link' }) : esc(it.name)}${it.qty > 1 ? ` <span class="qty">×${it.qty}</span>` : ''}${it.note && it.note !== 'pay in gold' && it.note !== 'second stack' ? ` <span class="qual">${esc(it.note)}</span>` : ''}
+        ${seasonal ? e.seasons.map(s => `<span class="dot ${seasonCls(s)}" title="${s}"></span>`).join('') : ''}${seasonal && !nowOk && !checked ? '<span class="pill soft">not this season</span>' : ''}</div>
+      ${how ? `<div class="it-how">${esc(how)}</div>` : ''}
+    </div></li>`;
+}
+
+/* ---------- People ---------- */
+function peopleView() {
+  const st = ctx();
+  let list = VILLAGERS.filter(v => showSpoil({ spoil: v.spoil })).map(v => { const [s, d] = v.b.split(' '); return { v, s, d: +d, until: daysUntil(st, s, +d) }; });
+  if (state.people === 'marry') list = list.filter(x => x.v.m);
+  if (state.people === 'abc') list.sort((a, b) => a.v.n.localeCompare(b.v.n)); else list.sort((a, b) => a.until - b.until);
+  const filters = [['soon', 'Next birthday'], ['abc', 'A–Z'], ['marry', 'Marriage candidates']].map(([k, l]) => `<button class="seg${state.people === k ? ' on' : ''}" data-people="${k}">${l}</button>`).join('');
+  const rows = list.map(({ v, s, d, until }) => {
+    const lv = lovedItems(v).names.slice(0, 4);
+    return `<li><button class="person" data-open="villager:${slug(v.n)}">
+      <span class="pname">${esc(v.n)}${v.m ? `<span class="heart" title="Marriage candidate">${pix('heart', 12)}</span>` : ''}</span>
+      <span class="pbday"><span class="stag ${seasonCls(s)}">${s} ${d}</span><span class="pill${until === 0 ? ' hot' : until <= 3 ? ' warn' : ' soft'}">${until === 0 ? 'Today!' : relDays(until)}</span></span>
+      <span class="ploves">Loves ${esc(lv.join(', '))}${lovedItems(v).names.length > 4 ? '…' : ''}</span>
+    </button></li>`;
+  }).join('');
+  return `<section class="panel"><div class="room-h"><h2>Villagers</h2></div><div class="segs">${filters}</div><ul class="people">${rows}</ul></section>`;
+}
+
+/* ---------- Field guide ---------- */
+function fieldView() {
+  const st = ctx();
+  const fs = state.fieldSeason || st.season;
+  const segs = [['crops', 'Crops'], ['fish', 'Fish'], ['forage', 'Forage'], ['cooking', 'Cooking'], ['minerals', 'Minerals']].map(([k, l]) => `<button class="seg${state.field === k ? ' on' : ''}" data-field="${k}">${l}</button>`).join('');
+  const seasonSegs = ['crops', 'fish', 'forage'].includes(state.field) ? `<div class="segs seasons">${SEASONS.map(s => `<button class="seg ${seasonCls(s)}${fs === s ? ' on' : ''}" data-fseason="${s}">${s}${s === st.season ? ' ·' : ''}</button>`).join('')}</div>` : '';
+  let body = '';
+  if (state.field === 'crops') {
+    const rows = CROPS.map(c => IDX.get('crop:' + slug(c[0]))).filter(e => e.crop.seasons ? e.crop.seasons.includes(fs) : true);
+    const pl = fs === st.season ? Object.fromEntries(plantable(st).map(p => [p.e.name, p])) : {};
+    body = `<div class="tablewrap"><table class="tbl"><thead><tr><th>Crop</th><th class="num">Days</th><th class="num">Regrows</th><th>Seeds</th><th class="num">Sells</th>${fs === st.season ? '<th>Plant by</th>' : ''}</tr></thead><tbody>${rows.map(e => {
+      const c = e.crop, p = pl[e.name];
+      return `<tr><td>${chip(e.name, { id: e.id, cls: 'link' })}</td><td class="num">${c.days}</td><td class="num">${c.regrow ? c.regrow + 'd' : '—'}</td><td class="small">${c.price ? gold(c.price) + ' · ' : ''}${esc(c.where.split(',')[0])}</td><td class="num">${gold(c.sell)}</td>${fs === st.season ? `<td>${!c.seasons ? '<span class="pill soft">indoors</span>' : p && p.ok ? (p.lastDay >= 28 ? '<span class="pill good">any day</span>' : `<span class="pill${p.lastDay - st.day <= 2 ? ' warn' : ' good'}">${st.season.slice(0, 2)} ${p.lastDay}</span>`) : '<span class="pill soft">too late</span>'}</td>` : ''}</tr>`;
+    }).join('')}</tbody></table></div>
+    <h4 class="sub-h">Fruit trees</h4><p class="muted small">Saplings from Pierre's. They need 28 days and a clear 3×3 space, then fruit every day in their season.</p><div class="chips">${FRUIT_TREES.map(t => chip(t[0], { label: `${t[0]} · ${SEASON_CODE[t[1]]}` })).join('')}</div>`;
+  } else if (state.field === 'fish') {
+    let rows = [...IDX.values()].filter(e => e.type === 'fish' && e.fish && !e.fish.crab && showSpoil(e) && inSeason(e, fs));
+    const nowSet = fs === st.season && state.fishNowOnly ? new Set(fishNow(st).map(e => e.id)) : null;
+    if (nowSet) rows = rows.filter(e => nowSet.has(e.id));
+    rows.sort((a, b) => a.name.localeCompare(b.name));
+    body = `${fs === st.season ? `<label class="toggle"><input type="checkbox" id="fishNowOnly" ${state.fishNowOnly ? 'checked' : ''}> Only fish biting ${state.hour == null ? 'today' : 'at ' + fmtHour(state.hour)} (${st.rain ? 'rain' : 'sunny'})</label>` : ''}
+    <div class="tablewrap"><table class="tbl"><thead><tr><th>Fish</th><th>Where</th><th>Time</th><th>Weather</th><th class="num">Sells</th></tr></thead><tbody>${rows.map(e => `<tr><td>${chip(e.name, { id: e.id, cls: 'link' })}${e.fish.legendary ? ' <span class="pill hot">legendary</span>' : ''}</td><td class="small">${esc(e.fish.where)}</td><td class="small">${fmtTimes(e.fish.times)}</td><td class="small">${e.fish.weather === 'Any' ? 'Any' : e.fish.weather === 'Rain' ? 'Rain' : 'Sun'}</td><td class="num">${gold(e.sell)}</td></tr>`).join('') || '<tr><td colspan="5" class="muted">No fish match. Try another time or weather.</td></tr>'}</tbody></table></div>
+    <h4 class="sub-h">Crab pots (any season)</h4><p class="muted small">Buy or craft a Crab Pot, add bait, and drop it in water. Check it daily.</p><div class="chips">${CRAB_POT.map(c => chip(c[0], { label: `${c[0]} · ${c[2] === 'Ocean' ? 'ocean' : 'fresh'}` })).join('')}</div>`;
+  } else if (state.field === 'forage') {
+    const list = FORAGE.filter(f => { const s = parseSeasons(f[1]); return (s ? s.includes(fs) : true) && (!f[6] || state.spoilers); });
+    body = `<ul class="flist">${list.map(f => `<li>${chip(f[0], { cls: 'link' })}<span class="meta">${esc(f[2])}</span>${f[1] === 'Any' ? '<span class="stag any">all year</span>' : ''}</li>`).join('')}</ul>`;
+  } else if (state.field === 'cooking') {
+    const list = RECIPES.filter(r => !r[4] || state.spoilers);
+    body = `<p class="muted small">You need a kitchen first (Robin's first house upgrade). Ingredients in your fridge count.</p><ul class="flist">${list.map(r => `<li>${chip(r[0], { cls: 'link' })}<span class="meta">${esc(r[1].replace(/;/g, ', '))}</span><span class="src">${esc(r[2])}</span></li>`).join('')}</ul>`;
+  } else {
+    const groups = ['Gem', 'Foraged Mineral', 'Geode', 'Geode Mineral'];
+    body = groups.map(g => `<h4 class="sub-h">${g === 'Geode' ? 'Geodes' : g + 's'}</h4><ul class="flist">${ITEMS.filter(i => i[1] === g).map(i => `<li>${chip(i[0], { cls: 'link' })}<span class="meta">${esc(i[2])}</span></li>`).join('')}</ul>`).join('') + '<p class="muted small">Donate one of each to the Museum before selling.</p>';
+  }
+  return `<section class="panel"><div class="room-h"><h2>Field guide</h2></div><div class="segs">${segs}</div>${seasonSegs}${body}</section>`;
+}
+
+/* ---------- How-to ---------- */
+function howtoView() {
+  const groups = {};
+  for (const g of GUIDES) (groups[g.g] = groups[g.g] || []).push(g);
+  const order = ['Getting started', 'Places', 'Friends & family', 'Farming & money', 'Late game'];
+  const sections = order.filter(k => groups[k]).map(k => `<section class="panel"><h3>${esc(k)}</h3><ul class="guides">${groups[k].map(g => `<li><button class="guide${g.spoil && !state.spoilers ? ' spoil' : ''}" data-open="guide:${slug(g.n)}"><span>${esc(g.n)}</span>${g.spoil && !state.spoilers ? '<span class="pill soft">spoiler</span>' : ''}</button></li>`).join('')}</ul></section>`).join('');
+  return `${sections}
+  <section class="panel settings"><h3>Settings</h3>
+    <label class="toggle"><input type="checkbox" id="setSpoil" ${state.spoilers ? 'checked' : ''}> Show late-game spoilers (Ginger Island, secret areas, legendary fish)</label>
+    <label class="toggle"><input type="checkbox" id="setCC" ${state.ccDone ? 'checked' : ''}> I've finished the Community Center (changes some shop hours)</label>
+    <div class="reset" id="resetBox"><button class="btn small ghost" data-action="askreset">Clear all bundle ticks</button></div>
+    <p class="muted small" id="syncNote"></p>
+    <p class="muted small">Facts are for Stardew Valley 1.6, checked against the official Stardew Valley Wiki.</p>
+  </section>`;
+}
+
+/* ---------- Detail sheet ---------- */
+const stack = [];
+function openDetail(id, push = true) {
+  const e = IDX.get(id); if (!e) return;
+  if (push) stack.push(id);
+  const sheet = $('#sheet');
+  sheet.hidden = false;
+  document.body.classList.add('sheet-open');
+  $('#sheetBack').hidden = stack.length < 2;
+  $('#sheetBody').innerHTML = detailHtml(e);
+  $('#sheetBody').scrollTop = 0;
+  sheet.querySelector('.sheet-card').focus({ preventScroll: true });
+}
+function closeDetail() { stack.length = 0; $('#sheet').hidden = true; document.body.classList.remove('sheet-open'); }
+function backDetail() { stack.pop(); if (stack.length) openDetail(stack[stack.length - 1], false); else closeDetail(); }
+
+function giftBlock(name) {
+  const w = whoLikes(name);
+  const vis = n => showSpoil(VILLAGERS.find(v => v.n === n));
+  const row = (label, list, cls) => {
+    const l = list.filter(vis); if (!l.length) return '';
+    const chips = `<span class="chips">${l.map(n => chip(n, { id: 'villager:' + slug(n) })).join('')}</span>`;
+    if (l.length > 10) return `<details class="giftrow ${cls}"><summary><span class="glabel">${label}</span> <span class="small">${l.length} villagers${l.length >= 25 ? ' (almost everyone)' : ''}</span></summary>${chips}</details>`;
+    return `<div class="giftrow ${cls}"><span class="glabel">${label}</span>${chips}</div>`;
+  };
+  const html = row('Loved by', w.love, 'love') + row('Liked by', w.like, 'like') + row('Don\'t give to', [...w.hate, ...w.dis], 'bad');
+  return html ? `<h4>As a gift</h4>${html}` : '';
+}
+function bundleBlock(name) {
+  const uses = bundleUses(name);
+  if (!uses.length) return '';
+  const st = ctx();
+  const need = uses.filter(it => !state.checks[it.key] && !bundleDone(it.bundle));
+  return `<div class="callout${need.length ? ' keep' : ''}">${need.length ? `<b>Keep one!</b> Still needed for the Community Center.` : 'Used in the Community Center (already donated).'}<ul class="items">${uses.map(it => itemRow(it, st).replace('<li class="it', `<li data-bundle="${esc(it.bundle.n)}" class="it`)).map((h, i) => h.replace('<div class="it-name">', `<div class="it-name"><span class="bname">${esc(uses[i].bundle.n)} Bundle:</span> `)).join('')}</ul></div>`;
+}
+function detailHtml(e) {
+  const st = ctx();
+  if (e.spoil && !state.spoilers) {
+    return `<div class="d-head"><div class="eyebrow">${TYPE_LABEL[e.type]}</div><h2>${esc(e.name)}</h2></div><div class="callout">This is late-game content. <button class="btn small" data-action="reveal">Show it anyway</button></div>`;
+  }
+  const head = (label, extra = '') => `<div class="d-head"><div class="eyebrow">${label}</div><h2>${esc(e.name)}</h2>${extra}</div>`;
+  if (e.type === 'villager') {
+    const v = e.v; const [s, d] = v.b.split(' '); const until = daysUntil(st, s, +d);
+    const lv = lovedItems(v), lk = lovedItems(v, 'like');
+    const uni = UNIVERSAL.love.split(';').filter(n => giftTaste(v, n) === 'love');
+    const avoid = [...tasteTable(v).hate.names, ...tasteTable(v).dis.names];
+    const avoidCats = [...tasteTable(v).hate.cats, ...tasteTable(v).dis.cats].map(r => r.raw);
+    return head(v.m ? 'Villager · marriage candidate' : 'Villager') + `
+      <div class="facts"><div><span>Birthday</span><b>${esc(v.b)}</b> <span class="pill${until === 0 ? ' hot' : until <= 3 ? ' warn' : ' soft'}">${until === 0 ? 'Today!' : relDays(until)}</span></div><div><span>Lives</span><b>${esc(v.home)}</b></div></div>
+      <p>${esc(v.who)}</p>
+      <h4>${pix('heart', 12)} Loves</h4><div class="chips">${lv.names.map(n => chip(n, { mark: 1, cls: 'love' })).join('')}${lv.cats.map(c => `<span class="chip plain love">${esc(c)}</span>`).join('')}</div>
+      ${uni.length ? `<p class="muted small">Also loves the universal favorites: ${uni.map(n => esc(n)).join(', ')}.</p>` : ''}
+      <h4>Likes</h4><div class="chips">${lk.names.map(n => chip(n, { mark: 1 })).join('')}${lk.cats.map(c => `<span class="chip plain">${esc(c)}</span>`).join('')}${!lk.names.length && !lk.cats.length ? '<span class="muted">Nothing special.</span>' : ''}</div>
+      ${avoid.length || avoidCats.length ? `<h4>Don't give</h4><div class="chips">${avoid.map(n => chip(n, { cls: 'bad' })).join('')}${avoidCats.map(c => `<span class="chip plain bad">${esc(c)}</span>`).join('')}</div>` : ''}
+      <p class="muted small">You can give 2 gifts a week, plus one on their birthday (worth 8×). Items with a dot are in season now.</p>`;
+  }
+  if (e.type === 'person') return head('Character') + `<p>${esc(e.who)}</p>`;
+  if (e.type === 'festival') {
+    const f = e.f; const until = Math.min(...f.d.map(d => daysUntil(st, f.s, d)));
+    return head('Festival', `<div class="facts"><div><span>When</span><b>${esc(f.s)} ${f.d.join(', ')}</b> <span class="pill${until === 0 ? ' hot' : ' soft'}">${until === 0 ? 'Today!' : relDays(until)}</span></div><div><span>Where</span><b>${esc(f.where)}</b></div><div><span>Time</span><b>${esc(f.time)}</b></div></div>`) +
+      `<p>${esc(f.what)}</p><div class="callout">${esc(f.tip)}</div>`;
+  }
+  if (e.type === 'shop') {
+    const s = e.shop; const r = shopStatus(s, st);
+    return head('Shop', `<div class="facts"><div><span>Hours</span><b>${esc(s.hours)}</b></div><div><span>Closed</span><b>${esc(s.closed)}</b></div><div><span>${esc(dateLabel(st.season, st.day))}${state.hour != null ? ', ' + fmtHour(state.hour) : ''}</span><b class="${r.closed ? 'bad' : 'good'}">${r.closed ? esc(r.why) : 'Open · ' + esc(r.why)}</b></div></div>`) +
+      `<p><b>Where:</b> ${esc(s.where)}</p><p><b>Sells:</b> ${esc(s.sells)}</p><p class="muted small">Run by ${chip(s.who.split(' ')[0], { id: idFor(s.who.split(' ')[0]) || undefined })}</p>`;
+  }
+  if (e.type === 'guide') {
+    const g = e.g;
+    return head('How-to · ' + g.g) + `<ol class="steps">${g.steps.map(s => `<li>${esc(s)}</li>`).join('')}</ol>${g.tip ? `<div class="callout">${esc(g.tip)}</div>` : ''}`;
+  }
+  if (e.type === 'bundle') {
+    const b = e.b;
+    return head('Bundle · ' + b.room, `<div class="facts"><div><span>Progress</span><b>${bundleCount(b)}/${b.need}</b></div><div><span>Reward</span><b>${esc(b.reward)}</b></div></div>`) + `<ul class="items">${b.items.map(it => itemRow(it, st)).join('')}</ul>`;
+  }
+  // item-like
+  const label = TYPE_LABEL[e.type] + (e.catLabel && e.type === 'item' ? ' · ' + e.catLabel : '');
+  let facts = '';
+  if (e.sell) facts += `<div><span>Sells for</span><b>${gold(e.sell)}</b></div>`;
+  if (e.type !== 'dish') facts += `<div><span>Season</span><b>${e.seasons ? e.seasons.join(', ') : 'Any season'}</b>${e.seasons && !e.seasons.includes(st.season) ? ' <span class="pill soft">not now</span>' : e.seasons ? ' <span class="pill good">in season</span>' : ''}</div>`;
+  let body = '';
+  if (e.type === 'crop') {
+    const c = e.crop;
+    facts += `<div><span>Grows in</span><b>${c.days} days${c.regrow ? `, then every ${c.regrow}` : ''}</b></div>`;
+    body += `<p><b>Seeds:</b> ${esc(c.seed)}${c.price ? ' · ' + gold(c.price) : ''} · ${esc(c.where)}</p>`;
+    if (c.seasons && c.seasons.includes(st.season)) {
+      const p = plantable(st).find(p => p.e === e);
+      body += p.ok ? `<div class="callout good">Plant today and it's ready on ${p.ready <= 28 ? st.season + ' ' + p.ready : 'day ' + (p.ready - 28) + ' of next season'}${p.harvests > 1 ? `, with about ${p.harvests} harvests before it dies` : ''}. ${p.lastDay >= 28 ? '' : `Last day to plant: <b>${st.season} ${p.lastDay}</b>.`}</div>`
+        : `<div class="callout warn">Too late to plant ${esc(e.name)} this ${st.season}: it needs ${c.days} days and only ${p.left} are left.</div>`;
+    } else if (c.seasons) body += `<div class="callout">Grows in ${c.seasons.join(' and ')} only. Out of season it won't grow outdoors; the Greenhouse works year-round.</div>`;
+    if (c.notes) body += `<p>${esc(c.notes)}</p>`;
+    if (e.src.includes(' · ')) body += `<p><b>Also:</b> ${esc(e.src.split(' · ').slice(1).join(' '))}</p>`;
+  } else if (e.type === 'fish' && e.fish && !e.fish.crab) {
+    const f = e.fish;
+    const now = fishNow(st).includes(e);
+    facts += `<div><span>Time</span><b>${fmtTimes(f.times)}</b></div><div><span>Weather</span><b>${f.weather === 'Any' ? 'Any' : f.weather === 'Rain' ? 'Rainy days' : 'Sunny days'}</b></div><div><span>Difficulty</span><b>${f.diff}</b> <span class="diff"><span style="width:${Math.min(100, f.diff)}%"></span></span></div>`;
+    body += `<p><b>Where:</b> ${esc(f.where)}${f.where.split(',').map(x => FISH_SPOTS[x.trim()]).filter(Boolean).length ? `<br><span class="muted small">${f.where.split(',').map(x => FISH_SPOTS[x.trim()]).filter(Boolean).map(esc).join(' · ')}</span>` : ''}</p>`;
+    if (f.gi) body += `<p class="muted small">Also bites all year on Ginger Island.</p>`;
+    body += now ? `<div class="callout good">Biting ${state.hour == null ? 'today' : 'at ' + fmtHour(state.hour)}${st.rain ? ' in the rain' : ''}.</div>` : `<div class="callout">Not biting right now (${st.season}, ${st.rain ? 'rain' : 'sunny'}${state.hour != null ? ', ' + fmtHour(state.hour) : ''}).</div>`;
+    if (f.note) body += `<p>${esc(f.note)}</p>`;
+  } else if (e.type === 'dish') {
+    body += `<h4>Ingredients</h4><div class="chips">${e.dish.ing.map(x => { const m = x.match(/^(.*?)(×\d+)?$/); return chip(m[1], { label: x.replace('×', ' ×'), mark: 1 }); }).join('')}</div><p><b>Recipe:</b> ${esc(e.dish.source)}</p>`;
+  } else {
+    body += `<p><b>How to get it:</b> ${esc(e.src)}</p>`;
+  }
+  const rec = recipeUses(e.name);
+  return head(label, `<div class="facts">${facts}</div>`) + bundleBlock(e.name) + body +
+    giftBlock(e.name) + (rec.length ? `<h4>Cook with it</h4><div class="chips">${rec.map(r => chip(r)).join('')}</div>` : '');
+}
+
+/* ---------- Search results ---------- */
+let lastQuery = '';
+function strong(r) { return r.results.length && r.results[0].score >= 6; }
+function specialAnswer(q, r) {
+  const w = norm(q).split(' ');
+  const st = ctx();
+  const has = (...k) => k.some(x => w.includes(x));
+  if (has('birthday', 'birthdays', 'bday') && !(strong(r) && r.results[0].e.type === 'villager')) {
+    const list = VILLAGERS.filter(v => showSpoil({ spoil: v.spoil })).map(v => { const [s, d] = v.b.split(' '); return { v, s, d: +d, u: daysUntil(st, s, +d) }; }).sort((a, b) => a.u - b.u).slice(0, 5);
+    return `<div class="answer"><div class="eyebrow">Upcoming birthdays</div><ul class="uplist">${list.map(x => `<li><span class="when">${x.s} ${x.d}</span><span>${chip(x.v.n, { id: 'villager:' + slug(x.v.n), cls: 'link' })} <span class="muted">${relDays(x.u)}</span></span></li>`).join('')}</ul></div>`;
+  }
+  if (has('festival', 'festivals', 'event', 'events') && !strong(r)) {
+    const list = FESTIVALS.map(f => ({ f, u: Math.min(...f.d.map(d => daysUntil(st, f.s, d))) })).sort((a, b) => a.u - b.u).slice(0, 4);
+    return `<div class="answer"><div class="eyebrow">Next festivals</div><ul class="uplist">${list.map(x => `<li><span class="when">${x.f.s} ${x.f.d[0]}</span><span>${chip(x.f.n, { id: 'festival:' + slug(x.f.n), cls: 'link' })} <span class="muted">${relDays(x.u)}</span></span></li>`).join('')}</ul></div>`;
+  }
+  if (has('fish', 'fishing', 'biting') && (has('now', 'today', 'rain', 'rainy', 'biting', 'can', 'season', 'tonight', 'night') || w.length <= 2) && !strong(r)) {
+    const list = fishNow(st).filter(showSpoil).filter(e => !e.fish.legendary);
+    return `<div class="answer"><div class="eyebrow">Biting ${state.hour == null ? 'today' : 'at ' + fmtHour(state.hour)} · ${st.season}, ${st.rain ? 'rain' : 'sunny'}</div><div class="chips">${list.map(e => chip(e.name, { id: e.id })).join('')}</div><p class="muted small">Change the weather or time at the top to see other fish.</p></div>`;
+  }
+  if (has('plant', 'grow', 'seed', 'seeds', 'crop', 'crops') && !strong(r)) {
+    const ok = plantable(st).filter(p => p.ok && p.e.crop.seasons.length < 4);
+    return `<div class="answer"><div class="eyebrow">Still time to plant · ${st.season} ${st.day}</div><div class="chips">${ok.map(p => chip(p.e.name, { id: p.e.id, label: p.e.name + ' · ' + p.e.crop.days + 'd' })).join('') || '<span class="muted">Nothing outdoors this season.</span>'}</div></div>`;
+  }
+  if (has('open', 'closed', 'shop', 'shops', 'store', 'stores') && !strong(r)) {
+    return `<div class="answer"><div class="eyebrow">Shops · ${WEEKDAYS[dow(st.day)]} ${st.season} ${st.day}${state.hour != null ? ', ' + fmtHour(state.hour) : ''}</div><ul class="shoplist">${SHOPS.map(s => { const x = shopStatus(s, st); return `<li>${chip(s.n, { id: 'shop:' + slug(s.n), cls: 'link' })}<span class="${x.closed ? 'bad' : 'good'} small">${esc(x.closed ? x.why : 'Open · ' + x.why)}</span></li>`; }).join('')}</ul></div>`;
+  }
+  return '';
+}
+function answerCard(e, intents) {
+  const st = ctx();
+  if (!showSpoil(e)) return `<div class="answer"><div class="eyebrow">${TYPE_LABEL[e.type]} · spoiler</div><h3>${esc(e.name)}</h3><button class="btn small" data-open="${e.id}">Show it anyway</button></div>`;
+  let body = '';
+  if (e.type === 'villager') {
+    const v = e.v; const [s, d] = v.b.split(' '); const u = daysUntil(st, s, +d);
+    const bd = `<p class="big">Birthday <b>${esc(v.b)}</b> · ${u === 0 ? '<b>today!</b>' : relDays(u)}</p>`;
+    const loves = `<div class="chips">${lovedItems(v).names.map(n => chip(n, { mark: 1, cls: 'love' })).join('')}</div>`;
+    body = intents.has('bday') ? bd + `<p class="small muted">Loves:</p>` + loves : `<p class="small muted">Loves:</p>${loves}${bd}`;
+  } else if (e.type === 'shop') {
+    const r = shopStatus(e.shop, st);
+    body = `<p class="big"><b class="${r.closed ? 'bad' : 'good'}">${r.closed ? esc(r.why) : 'Open · ' + esc(r.why)}</b></p><p class="small">${esc(e.shop.hours)} · Closed ${esc(e.shop.closed.toLowerCase())}</p>`;
+  } else if (e.type === 'festival') {
+    const f = e.f; const u = Math.min(...f.d.map(d => daysUntil(st, f.s, d)));
+    body = `<p class="big"><b>${esc(f.s)} ${f.d.join(', ')}</b> · ${relDays(u)}</p><p class="small">${esc(f.where)}, ${esc(f.time)}. ${esc(f.what)}</p>`;
+  } else if (e.type === 'guide') {
+    body = `<ol class="steps small">${e.g.steps.slice(0, 3).map(s => `<li>${esc(s)}</li>`).join('')}</ol>`;
+  } else if (e.type === 'bundle') {
+    body = `<p class="small">${bundleCount(e.b)}/${e.b.need} done · ${e.b.items.map(i => esc(i.name)).join(', ')}</p>`;
+  } else if (e.type === 'person') {
+    body = `<p class="small">${esc(e.who)}</p>`;
+  } else {
+    const uses = bundleUses(e.name).filter(it => !state.checks[it.key] && !bundleDone(it.bundle));
+    const w = whoLikes(e.name);
+    body = `<p class="small">${esc(e.type === 'fish' && e.fish && !e.fish.crab ? e.src : e.type === 'crop' ? e.src : e.src.split(' · ')[0])}</p>`
+      + (e.seasons ? `<p class="small">${seasonTags(e.seasons)}</p>` : '')
+      + (uses.length ? `<p class="small keepnote"><b>Keep one:</b> needed for the ${uses.map(u => esc(u.bundle.n)).join(' and ')} bundle.</p>` : '')
+      + (w.love.length ? `<p class="small">Loved by ${w.love.filter(n => showSpoil(VILLAGERS.find(v => v.n === n))).map(n => chip(n, { id: 'villager:' + slug(n) })).join(' ')}</p>` : '');
+  }
+  return `<div class="answer"><div class="eyebrow">${TYPE_LABEL[e.type]}</div><h3>${esc(e.name)}</h3>${body}<button class="btn small" data-open="${e.id}">Open full page ›</button></div>`;
+}
+function renderResults() {
+  const q = $('#q').value.trim();
+  lastQuery = q;
+  const box = $('#results');
+  if (!q) { box.hidden = true; $('#view').hidden = false; return; }
+  box.hidden = false; $('#view').hidden = true;
+  const r = search(q, 12);
+  const special = specialAnswer(q, r);
+  let html = special;
+  const res = r.results;
+  if (res.length) {
+    let top = res[0].e;
+    if (r.intents.has('hours') && top.type === 'villager') { const sh = SHOPS.find(x => x.who.startsWith(top.name)); if (sh) top = IDX.get('shop:' + slug(sh.n)); }
+    if (!special) html += answerCard(top, r.intents);
+    const rest = special ? res : res.slice(1);
+    if (rest.length) html += `<h4 class="sub-h">${special ? 'Matches' : 'Other matches'}</h4><ul class="results">${rest.map(x => `<li><button class="result${showSpoil(x.e) ? '' : ' spoil'}" data-open="${x.e.id}"><span class="rtype">${TYPE_LABEL[x.e.type]}</span><span class="rname">${showSpoil(x.e) ? esc(x.e.name) : 'Spoiler: ' + esc(x.e.name)}</span><span class="rsnip">${esc(snippet(x.e))}</span></button></li>`).join('')}</ul>`;
+  } else if (!special) {
+    const sg = suggest(q);
+    html += `<div class="answer"><div class="eyebrow">No match</div><p>Nothing called “${esc(q)}”. Try a shorter word or describe it, like “purple mushroom” or “guy in the sewer”.</p>${sg.length ? `<p class="small">Did you mean: ${sg.map(e => chip(e.name, { id: e.id })).join(' ')}</p>` : ''}</div>`;
+  }
+  html += askBox(q);
+  box.innerHTML = html;
+}
+function snippet(e) {
+  if (e.type === 'villager') return `Birthday ${e.v.b}`;
+  if (e.type === 'shop') return e.shop.hours;
+  if (e.type === 'festival') return `${e.f.s} ${e.f.d.join(', ')}`;
+  if (e.type === 'guide') return e.g.g;
+  if (e.type === 'bundle') return e.b.room;
+  if (e.type === 'person') return e.who.slice(0, 60);
+  return (e.src || '').split(' · ')[0].slice(0, 80);
+}
+
+/* ---------- Ask Claude (when the viewer allows it) ---------- */
+let sampleFn = null, askCtl = null;
+function askBox(q) {
+  if (!sampleFn) return '';
+  return `<div class="askbox"><button class="btn" data-action="ask">Ask Claude: “${esc(q.length > 60 ? q.slice(0, 57) + '…' : q)}”</button><div id="askOut" class="askout" hidden></div></div>`;
+}
+function factsFor(e) {
+  if (e.type === 'villager') { const v = e.v; return `${v.n} (villager): birthday ${v.b}; lives ${v.home}; ${v.who} Loves: ${v.love.replace(/;/g, ', ')}. Likes: ${v.like.replace(/;/g, ', ')}. Hates: ${v.hate.replace(/;/g, ', ') || 'nothing special'}.`; }
+  if (e.type === 'shop') return `${e.name} (shop): ${e.shop.hours}; closed ${e.shop.closed}; ${e.shop.where}; sells ${e.shop.sells}`;
+  if (e.type === 'festival') return `${e.name} (festival): ${e.f.s} ${e.f.d.join(', ')}, ${e.f.where}, ${e.f.time}. ${e.f.what} ${e.f.tip}`;
+  if (e.type === 'guide') return `How-to "${e.name}": ${e.g.steps.join(' ')} ${e.g.tip || ''}`;
+  if (e.type === 'bundle') return `${e.name} (${e.b.room}): needs ${e.b.need} of ${e.b.items.map(i => i.name + (i.qty > 1 ? ' x' + i.qty : '')).join(', ')}; reward ${e.b.reward}.`;
+  const w = whoLikes(e.name);
+  return `${e.name} (${TYPE_LABEL[e.type]}): ${e.src || ''} Seasons: ${e.seasons ? e.seasons.join('/') : 'any'}. Sells ${e.sell || '?'}g. Loved by: ${w.love.join(', ') || 'nobody in particular'}. Bundles: ${bundleUses(e.name).map(u => u.bundle.n).join(', ') || 'none'}.`;
+}
+async function ask() {
+  const out = $('#askOut'); if (!out || !sampleFn) return;
+  const q = lastQuery;
+  out.hidden = false; out.textContent = 'Thinking…';
+  if (askCtl) askCtl.abort();
+  askCtl = new AbortController();
+  const st = ctx();
+  const hits = search(q, 8).results.map(x => '- ' + factsFor(x.e)).join('\n');
+  const missing = [];
+  for (const room of BUNDLE_ROOMS) for (const b of room.bundles) if (!bundleDone(b)) missing.push(`${b.n} (${bundleCount(b)}/${b.need})`);
+  const prompt = `You are the friendly helper inside a pocket almanac for Stardew Valley 1.6. A player is mid-game and asked a quick question.
+
+Player's game: ${st.season} ${st.day}, Year ${st.year} (${WEEKDAYS[dow(st.day)]}), weather ${st.rain ? 'rain' : 'sunny'}${state.hour != null ? ', about ' + fmtHour(state.hour) : ''}. Community Center ${st.ccDone ? 'finished' : 'in progress; unfinished bundles: ' + missing.slice(0, 12).join(', ')}. ${state.spoilers ? '' : 'Avoid late-game spoilers (Ginger Island, Qi, secret areas) unless the question is about them.'}
+
+Facts from the almanac that may help (trust these over memory):
+${hits || '- (no direct matches)'}
+
+Question: ${q}
+
+Answer in 1 to 4 short, plain sentences, like a friend who knows the game well. Be specific about names, places, days and times. If the player probably misremembered a name, say what they likely mean. No headings or lists unless they asked for a list.`;
+  try {
+    const res = await sampleFn(prompt, { signal: askCtl.signal, onText: ({ text }) => { out.textContent = text; } });
+    out.textContent = res.text;
+  } catch (err) {
+    out.textContent = err && err.code === 'rate_limited' ? 'Claude is busy right now. Try again in a minute.' : err && err.code === 'cancelled' ? '' : 'Claude couldn\'t answer that right now.';
+    if (err && err.code === 'not_granted') { sampleFn = null; renderResults(); }
+  }
+}
+async function initSample() {
+  if (!window.claude || !window.claude.use) return;
+  try { const s = await claude.use('sample'); if (s) { sampleFn = s; if (lastQuery) renderResults(); } } catch (e) { /* unavailable */ }
+}
+
+/* ---------- Date picker ---------- */
+let pk = null;
+function openPicker() {
+  pk = { season: state.season, year: state.year };
+  renderPicker();
+  $('#datePop').hidden = false;
+  $('#datePop .pop-card').focus({ preventScroll: true });
+}
+function renderPicker() {
+  $('#popBody').innerHTML = `<div class="segs seasons">${SEASONS.map(s => `<button class="seg ${seasonCls(s)}${pk.season === s ? ' on' : ''}" data-pseason="${s}">${s}</button>`).join('')}</div>
+    <div class="yearrow"><button class="btn small ghost" data-action="pyear" data-d="-1" aria-label="Previous year">‹</button><b>Year ${pk.year}</b><button class="btn small ghost" data-action="pyear" data-d="1" aria-label="Next year">›</button></div>
+    ${calendar(pk.season, pk.year, pk.season === state.season && pk.year === state.year ? state.day : 0, true)}
+    <p class="muted small">Pick the day you're on in your game.</p>`;
+}
+
+/* ---------- Main render ---------- */
+function render() {
+  renderHeader();
+  const v = $('#view');
+  v.innerHTML = state.tab === 'bundles' ? bundlesView() : state.tab === 'people' ? peopleView() : state.tab === 'field' ? fieldView() : state.tab === 'howto' ? howtoView() : todayView();
+  if (state.tab === 'howto') syncNote();
+  if (lastQuery) renderResults();
+  if (!$('#sheet').hidden && stack.length) $('#sheetBody').innerHTML = detailHtml(IDX.get(stack[stack.length - 1]));
+}
+
+/* ---------- Events ---------- */
+document.addEventListener('click', ev => {
+  const t = ev.target.closest('[data-open],[data-action],[data-tab],[data-setday],[data-people],[data-field],[data-fseason],[data-pseason]');
+  if (!t) return;
+  if (t.dataset.open) { openDetail(t.dataset.open); return; }
+  if (t.dataset.tab) { state.tab = t.dataset.tab; $('#q').value = ''; renderResults(); save(true); render(); window.scrollTo({ top: 0 }); return; }
+  if (t.dataset.setday) {
+    state.day = +t.dataset.setday; state.season = t.dataset.setseason; state.dateSet = 1;
+    if (!$('#datePop').hidden) { state.year = pk.year; $('#datePop').hidden = true; }
+    save(); render(); return;
+  }
+  if (t.dataset.people) { state.people = t.dataset.people; save(true); render(); return; }
+  if (t.dataset.field) { state.field = t.dataset.field; save(true); render(); return; }
+  if (t.dataset.fseason) { state.fieldSeason = t.dataset.fseason === state.season ? null : t.dataset.fseason; render(); return; }
+  if (t.dataset.pseason) { pk.season = t.dataset.pseason; renderPicker(); return; }
+  const a = t.dataset.action;
+  if (a === 'nextday') shiftDay(1);
+  else if (a === 'prevday') shiftDay(-1);
+  else if (a === 'date') openPicker();
+  else if (a === 'closepop') $('#datePop').hidden = true;
+  else if (a === 'pyear') { pk.year = Math.max(1, pk.year + +t.dataset.d); renderPicker(); }
+  else if (a === 'weather') { state.rain = !state.rain; save(); render(); }
+  else if (a === 'close') closeDetail();
+  else if (a === 'back') backDetail();
+  else if (a === 'clear') { $('#q').value = ''; renderResults(); $('#q').focus(); }
+  else if (a === 'ask') ask();
+  else if (a === 'reveal') { state.spoilers = true; save(); render(); }
+  else if (a === 'askreset') $('#resetBox').innerHTML = `<span class="small">Clear every tick?</span> <button class="btn small danger" data-action="doreset">Yes, clear</button> <button class="btn small ghost" data-action="noreset">Keep them</button>`;
+  else if (a === 'doreset') { state.checks = {}; save(); render(); }
+  else if (a === 'noreset') render();
+});
+document.addEventListener('change', ev => {
+  const t = ev.target;
+  if (t.dataset.check) { if (t.checked) state.checks[t.dataset.check] = 1; else delete state.checks[t.dataset.check]; save(); render(); return; }
+  if (t.id === 'bundleNow') { state.bundleNow = t.checked; save(true); render(); }
+  if (t.id === 'fishNowOnly') { state.fishNowOnly = t.checked; save(true); render(); }
+  if (t.id === 'setSpoil') { state.spoilers = t.checked; save(); render(); }
+  if (t.id === 'setCC') { state.ccDone = t.checked; save(); render(); }
+  if (t.id === 'hourSel') { state.hour = t.value === '' ? null : +t.value; save(); render(); }
+});
+let qTimer = 0;
+document.addEventListener('input', ev => { if (ev.target.id === 'q') { clearTimeout(qTimer); qTimer = setTimeout(renderResults, 80); } });
+document.addEventListener('keydown', ev => {
+  if (ev.key === 'Escape') {
+    if (!$('#datePop').hidden) $('#datePop').hidden = true;
+    else if (!$('#sheet').hidden) closeDetail();
+    else if ($('#q').value) { $('#q').value = ''; renderResults(); }
+  }
+  if (ev.key === '/' && document.activeElement !== $('#q') && !/INPUT|SELECT|TEXTAREA/.test(document.activeElement.tagName)) { ev.preventDefault(); $('#q').focus(); }
+  if (ev.key === 'Enter' && ev.target.id === 'q') { const first = $('#results [data-open]'); if (first && !$('#results .answer [data-open]')) first.click(); else { const o = $('#results .answer .btn[data-open]'); if (o) o.click(); } }
+});
+$('#sheet').addEventListener('click', ev => { if (ev.target.id === 'sheet') closeDetail(); });
+$('#datePop').addEventListener('click', ev => { if (ev.target.id === 'datePop') $('#datePop').hidden = true; });
+
+// hour options
+$('#hourSel').innerHTML = '<option value="">Any time</option>' + Array.from({ length: 20 }, (_, i) => i + 6).map(h => `<option value="${h}">${fmtHour(h)}</option>`).join('');
+document.querySelectorAll('[data-icon]').forEach(el => { el.insertAdjacentHTML('afterbegin', pix(el.dataset.icon, +(el.dataset.size || 18))); });
+
+render();
+initCloud();
+initSample();
+
+</script>
+</body></html>
