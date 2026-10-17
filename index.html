@@ -498,7 +498,7 @@ const UNIVERSAL = {
 const CROPS = [
   ['Blue Jazz', 'Sp', 7, 0, 'Jazz Seeds', 30, "Pierre's", 50, 'Flower. Bees near flowers make flower honey.'],
   ['Carrot', 'Sp', 3, 0, 'Carrot Seeds', 0, 'Dig artifact spots or chop trees in Spring', 35, 'Fastest crop in the game.'],
-  ['Cauliflower', 'Sp', 12, 0, 'Cauliflower Seeds', 80, "Pierre's", 175, 'Can grow into a giant crop in a 3×3 square. Maru loves it.'],
+  ['Cauliflower', 'Sp', 12, 0, 'Cauliflower Seeds', 80, "Pierre's", 175, 'Maru loves it.'],
   ['Coffee Bean', 'Sp Su', 10, 2, 'Coffee Bean', 0, 'Traveling Cart (2,500g), Dust Sprites in the Mines (floors 41–79)', 15, 'Grows in Spring and Summer. Put 5 beans in a Keg for Coffee.'],
   ['Garlic', 'Sp', 4, 0, 'Garlic Seeds', 40, "Pierre's (Year 2+)", 60, ''],
   ['Green Bean', 'Sp', 10, 3, 'Bean Starter', 60, "Pierre's", 40, 'Needs a trellis (you cannot walk through it).'],
@@ -513,7 +513,7 @@ const CROPS = [
   ['Corn', 'Su Fa', 14, 4, 'Corn Seeds', 150, "Pierre's", 50, 'Grows in Summer and Fall: plant in Summer and it keeps producing into Fall.'],
   ['Hops', 'Su', 11, 1, 'Hops Starter', 60, "Pierre's", 25, 'Needs a trellis. Harvest daily. Keg → Pale Ale.'],
   ['Hot Pepper', 'Su', 5, 3, 'Pepper Seeds', 40, "Pierre's", 40, 'Lewis and Shane love Hot Peppers.'],
-  ['Melon', 'Su', 12, 0, 'Melon Seeds', 80, "Pierre's", 250, 'Can grow into a giant crop. Penny loves melons.'],
+  ['Melon', 'Su', 12, 0, 'Melon Seeds', 80, "Pierre's", 250, 'Penny loves melons.'],
   ['Poppy', 'Su', 7, 0, 'Poppy Seeds', 100, "Pierre's", 140, 'Flower. Needed for the Chef\'s Bundle. Penny loves it; most others hate it.'],
   ['Radish', 'Su', 6, 0, 'Radish Seeds', 40, "Pierre's", 90, ''],
   ['Red Cabbage', 'Su', 9, 0, 'Red Cabbage Seeds', 100, "Pierre's (Year 2+), Traveling Cart", 260, 'Needed for the Dye Bundle. In Year 1, check the Traveling Cart.'],
@@ -532,9 +532,9 @@ const CROPS = [
   ['Eggplant', 'Fa', 5, 5, 'Eggplant Seeds', 20, "Pierre's", 60, ''],
   ['Fairy Rose', 'Fa', 12, 0, 'Fairy Seeds', 200, "Pierre's", 290, 'Flower. Bees near it make expensive honey.'],
   ['Grape', 'Fa', 10, 3, 'Grape Starter', 60, "Pierre's", 80, 'Needs a trellis. Also forageable in Summer.'],
-  ['Pumpkin', 'Fa', 13, 0, 'Pumpkin Seeds', 100, "Pierre's", 320, 'Giant crop possible. Abigail, Krobus and Willy love it.'],
+  ['Pumpkin', 'Fa', 13, 0, 'Pumpkin Seeds', 100, "Pierre's", 320, 'Abigail, Krobus and Willy love it.'],
   ['Yam', 'Fa', 10, 0, 'Yam Seeds', 60, "Pierre's", 160, 'Linus loves yams.'],
-  ['Powdermelon', 'Wi', 7, 0, 'Powdermelon Seeds', 0, 'Dig artifact spots or chop trees in Winter', 60, 'The only Winter crop. Can grow giant.'],
+  ['Powdermelon', 'Wi', 7, 0, 'Powdermelon Seeds', 0, 'Dig artifact spots or chop trees in Winter', 60, 'The only crop that grows outdoors in Winter.'],
   ['Ancient Fruit', 'Sp Su Fa', 28, 7, 'Ancient Seeds', 0, 'Donate an Ancient Seed artifact to the museum, or Seed Maker', 550, 'Grows Spring through Fall; keeps producing forever in the Greenhouse.'],
   ['Sweet Gem Berry', 'Fa', 24, 0, 'Rare Seed', 1000, 'Traveling Cart', 3000, 'Plant early in Fall. Old Master Cannoli in the Secret Woods wants one.'],
   ['Tea Leaves', 'Sp Su Fa', 20, 0, 'Tea Sapling', 0, "Caroline's 2-heart event, or craft it", 50, 'A bush that lasts forever. Leaves appear on days 22–28 of each season.'],
@@ -1001,6 +1001,50 @@ const SHOPS = [
 ];
 
 /* ---------- People who aren't gift-givers but get searched for ---------- */
+/* Everyday names people use when they don't know the real one. Added to search keywords. */
+const ALIASES = {
+  'Powdermelon': 'winter melon white melon snow melon frost melon icy melon',
+  'Melon': 'watermelon green melon summer melon',
+  'Pumpkin': 'jack o lantern orange squash',
+  'Cauliflower': 'white broccoli',
+  'Summer Squash': 'zucchini courgette yellow squash',
+  'Bok Choy': 'cabbage chinese cabbage pak choi',
+  'Red Cabbage': 'purple cabbage',
+  'Unmilled Rice': 'rice plant paddy',
+  'Hot Pepper': 'chili chilli red pepper',
+  'Cranberries': 'cranberry red berries',
+  'Ancient Fruit': 'blue fruit ancient seed',
+  'Sweet Gem Berry': 'rare seed gem fruit expensive berry',
+  'Fiddlehead Fern': 'fern curly green',
+  'Salmonberry': 'pink berry',
+  'Spice Berry': 'red berry',
+  'Crystal Fruit': 'ice fruit icy fruit blue fruit winter fruit',
+  'Snow Yam': 'white yam winter potato',
+  'Winter Root': 'root winter carrot',
+  'Wild Horseradish': 'horse radish white root',
+  'Cave Carrot': 'mine carrot',
+  'Hazelnut': 'nut acorn',
+  'Truffle': 'pig mushroom black mushroom',
+  'Duck Feather': 'feather',
+  "Rabbit's Foot": 'bunny foot lucky foot',
+  'Prismatic Shard': 'rainbow gem rainbow crystal rainbow shard',
+  'Frozen Tear': 'ice crystal blue crystal tear',
+  'Fire Quartz': 'red crystal fire crystal',
+  'Earth Crystal': 'brown crystal',
+  'Quartz': 'white crystal clear crystal',
+  'Omni Geode': 'rainbow geode rainbow rock',
+  'Void Egg': 'black egg dark egg',
+  'Nautilus Shell': 'spiral shell snail shell',
+  'Rainbow Shell': 'colorful shell pretty shell',
+  'Sea Urchin': 'spiky ball urchin',
+  'Coral': 'pink coral',
+  'Junimos': 'forest spirits little green guys',
+  'Traveling Cart': 'pig cart pink pig wagon',
+  'Krobus': 'shadow guy sewer guy',
+  'Wizard': 'rasmodius',
+  'Mermaid\'s Pendant': 'necklace amulet wedding necklace',
+};
+
 const OTHER_PEOPLE = [
   ['Marlon', "Runs the Adventurer's Guild by the Mines. Gives monster-slaying goals and rewards.", 'eye patch guild monsters'],
   ['Gunther', 'Curator of the Museum. Rewards you for donations.', 'museum curator library'],
@@ -1074,6 +1118,13 @@ const GUIDES = [
     steps: ['On the 1st of a new season, crops that are out of season die (except the Greenhouse and Ginger Island).', 'Corn, Sunflower, Wheat (Summer → Fall), Coffee (Spring → Summer) and Ancient Fruit survive the change.',
       'Count backwards: a crop that takes 13 days must be planted by day 15 at the latest.'],
     tip: 'The Field Guide here tells you if it is too late to plant something.' },
+  { n: 'Giant crops', g: 'Farming & money', kw: 'giant huge big massive enormous crop melon pumpkin cauliflower powdermelon winter 3x3 axe chop',
+    steps: ['Only Cauliflower, Melon, Pumpkin and Powdermelon can turn giant (outdoors on the farm only: not in the Greenhouse, garden pots or on Ginger Island).',
+      'It happens when 9 of the same crop are planted in a 3×3 square. Each night, once they are fully grown and watered, there is a small chance (about 1%) that they merge into one giant crop.',
+      'It\'s pure luck, so you didn\'t do anything wrong or special. Bigger fields of that crop just give it more chances.',
+      'To harvest it, chop it with your axe (any axe, three hits). It drops 15–21 of that crop, more than the 9 plants would have given.',
+      'Or leave it as decoration: giant crops don\'t die when the season changes. Chopping it can untill the soil underneath and you lose any fertilizer there.'],
+    tip: 'Want another one? Plant that crop in 3×3 blocks and leave the ripe crops unharvested for a few extra days (kept watered), since each day gives another chance. Don\'t wait past the end of the season.' },
   { n: 'Make money early', g: 'Farming & money', kw: 'money gold rich profit early game',
     steps: ['Spring: plant Strawberries at the Egg Festival, Cauliflower and Potatoes. Summer: Blueberries and Melons. Fall: Cranberries and Pumpkins.',
       'Build Kegs and Preserves Jars: artisan goods sell for far more than raw crops.', 'Fish on rainy days. Crab Pots give steady income.', 'Sell to the shipping bin by your house; money arrives overnight.'] },
@@ -1116,6 +1167,7 @@ function fmtTimes(times) {
 function gold(n) { return n ? n.toLocaleString('en-US') + 'g' : ''; }
 
 /* ---------- Categories used by gift tastes ---------- */
+const GIANT_CROPS = ['Cauliflower', 'Melon', 'Pumpkin', 'Powdermelon'];
 const FRUIT_TREE_FRUIT = ['Apple', 'Apricot', 'Cherry', 'Orange', 'Peach', 'Pomegranate'];
 const CATS = {
   'Fruit': ['Strawberry', 'Blueberry', 'Melon', 'Hot Pepper', 'Starfruit', 'Cranberries', 'Grape', 'Ancient Fruit', 'Rhubarb', 'Cactus Fruit', 'Powdermelon', 'Pineapple', 'Mango', 'Banana', 'Coconut', 'Salmonberry', 'Blackberry', 'Wild Plum', 'Spice Berry', 'Crystal Fruit', ...FRUIT_TREE_FRUIT],
@@ -1202,6 +1254,13 @@ function buildIndex() {
   for (const f of FESTIVALS) addEntry({ type: 'festival', name: f.n, f, kw: 'festival event ' + f.s + ' ' + f.kw, text: f.what + ' ' + f.where });
   for (const s of SHOPS) addEntry({ type: 'shop', name: s.n, shop: s, kw: 'shop store open hours closed buy ' + s.who + ' ' + s.kw, text: s.sells + ' ' + s.where, spoil: s.spoil });
   for (const g of GUIDES) addEntry({ type: 'guide', name: g.n, g, kw: 'how to ' + g.kw + ' ' + g.g, text: g.steps.join(' '), spoil: g.spoil });
+
+  // Everyday names and season words, so vague searches still land
+  for (const e of IDX.values()) if (e.seasons && ITEM_TYPES.includes(e.type)) e.kw = (e.kw || '') + ' ' + e.seasons.join(' ').toLowerCase();
+  for (const [n, kw] of Object.entries(ALIASES)) {
+    const e = itemByName(n) || IDX.get('villager:' + slug(n)) || IDX.get('person:' + slug(n)) || IDX.get('shop:' + slug(n));
+    if (e) e.kw = (e.kw || '') + ' ' + kw;
+  }
 
   // Bundles: link each bundle item to its index entry
   let bi = 0;
@@ -1381,7 +1440,7 @@ function stem(w) {
   if (w.length > 3 && w.endsWith('s') && !w.endsWith('ss')) return w.slice(0, -1);
   return w;
 }
-const SYN = { married: 'marry', marriage: 'marry', wedding: 'marry', spouse: 'marry', propose: 'marry', proposal: 'marry', kids: 'kid', children: 'kid', child: 'kid', money: 'money', cash: 'money', gold: 'gold', xmas: 'christmas', halloween: 'halloween' };
+const SYN = { married: 'marry', marriage: 'marry', wedding: 'marry', spouse: 'marry', propose: 'marry', proposal: 'marry', kids: 'kid', huge: 'giant', massive: 'giant', enormous: 'giant', gigantic: 'giant', humongous: 'giant', children: 'kid', child: 'kid', money: 'money', cash: 'money', gold: 'gold', xmas: 'christmas', halloween: 'halloween' };
 function toks(s) { return norm(s).split(' ').filter(Boolean).map(w => SYN[w] || stem(w)); }
 function dl(a, b, max) { // Damerau–Levenshtein with early exit
   if (Math.abs(a.length - b.length) > max) return max + 1;
@@ -1404,6 +1463,8 @@ function tokMatch(q, t) {
   if (q === t) return 1;
   if (q.length >= 2 && t.startsWith(q)) return 0.85 - Math.min(0.25, (t.length - q.length) * 0.03);
   if (t.length >= 4 && q.startsWith(t)) return 0.55;
+  if (q.length >= 4 && t.length > q.length + 2 && t.endsWith(q)) return 0.65; // 'melon' in 'powdermelon'
+  if (q.length >= 5 && t.includes(q)) return 0.45;
   const max = q.length >= 8 ? 2 : q.length >= 4 ? 1 : 0;
   if (max) { const d = dl(q, t, max); if (d <= max) return d === 1 ? 0.72 : 0.5; }
   return 0;
@@ -1874,6 +1935,7 @@ function detailHtml(e) {
       body += p.ok ? `<div class="callout good">Plant today and it's ready on ${p.ready <= 28 ? st.season + ' ' + p.ready : 'day ' + (p.ready - 28) + ' of next season'}${p.harvests > 1 ? `, with about ${p.harvests} harvests before it dies` : ''}. ${p.lastDay >= 28 ? '' : `Last day to plant: <b>${st.season} ${p.lastDay}</b>.`}</div>`
         : `<div class="callout warn">Too late to plant ${esc(e.name)} this ${st.season}: it needs ${c.days} days and only ${p.left} are left.</div>`;
     } else if (c.seasons) body += `<div class="callout">Grows in ${c.seasons.join(' and ')} only. Out of season it won't grow outdoors; the Greenhouse works year-round.</div>`;
+    if (GIANT_CROPS.includes(e.name)) body += `<div class="callout"><b>Can grow giant.</b> Nine of these in a 3×3 square sometimes merge into one huge crop overnight. Chop it with your axe for 15–21 ${esc(e.name)}. ${chip('What causes giant crops?', { id: 'guide:giant-crops', cls: 'link' })}</div>`;
     if (c.notes) body += `<p>${esc(c.notes)}</p>`;
     if (e.src.includes(' · ')) body += `<p><b>Also:</b> ${esc(e.src.split(' · ').slice(1).join(' '))}</p>`;
   } else if (e.type === 'fish' && e.fish && !e.fish.crab) {
