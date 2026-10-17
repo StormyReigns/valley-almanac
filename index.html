@@ -271,6 +271,13 @@ button.chip:hover { border-color: var(--wood-hi); }
 .steps.small { font-size: .9rem; }
 .reset { margin: 8px 0; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
 
+/* credits */
+.credit-line { text-align: center; font-size: .75rem; line-height: 1.5; color: var(--ink-2); padding: 4px 8px 0; }
+.credit-line a, .credits a, .linkbtn { color: inherit; text-decoration: underline; text-decoration-color: var(--paper-line); text-underline-offset: 2px; }
+.credits a { color: var(--ink); text-decoration-color: var(--acc); }
+.linkbtn { background: none; border: 0; padding: 0; font: inherit; }
+#credits { scroll-margin-top: 130px; }
+
 /* search results */
 #results[hidden], main[hidden] { display: none !important; }
 .answer { background: var(--paper); border: 3px solid var(--wood); border-radius: 5px; box-shadow: inset 0 0 0 2px var(--wood-hi), 0 4px 0 var(--wood-dk); padding: 14px 16px; display: grid; gap: 6px; justify-items: start; min-width: 0; }
@@ -1766,8 +1773,15 @@ function howtoView() {
     <label class="toggle"><input type="checkbox" id="setCC" ${state.ccDone ? 'checked' : ''}> I've finished the Community Center (changes some shop hours)</label>
     <div class="reset" id="resetBox"><button class="btn small ghost" data-action="askreset">Clear all bundle ticks</button></div>
     <p class="muted small" id="syncNote"></p>
-    <p class="muted small">Facts are for Stardew Valley 1.6, checked against the official Stardew Valley Wiki.</p>
+  </section>
+  <section class="panel credits" id="credits"><h3>About &amp; credits</h3>
+    <p class="small"><b>Game facts</b> come from the <a href="https://stardewvalleywiki.com" target="_blank" rel="noopener">Stardew Valley Wiki</a>, written by its community of editors. Gift tastes, bundles, fish, crops, recipes and festival details were checked there for version 1.6, then condensed and reworded for this almanac. Wiki content is shared under <a href="https://creativecommons.org/licenses/by-nc-sa/3.0/" target="_blank" rel="noopener">CC BY-NC-SA 3.0</a>, so this almanac is shared under the same license: free and non-commercial.</p>
+    <p class="small"><b>Stardew Valley</b> is made by ConcernedApe (Eric Barone). This is an unofficial fan guide, not affiliated with or endorsed by ConcernedApe.</p>
+    <p class="small"><b>Fonts:</b> Pixelify Sans and Nunito, from Google Fonts, under the SIL Open Font License.</p>
   </section>`;
+}
+function creditLine() {
+  return `<footer class="credit-line">Unofficial fan guide · Facts from the <a href="https://stardewvalleywiki.com" target="_blank" rel="noopener">Stardew Valley Wiki</a> (<a href="https://creativecommons.org/licenses/by-nc-sa/3.0/" target="_blank" rel="noopener">CC BY-NC-SA</a>) · <button class="linkbtn" data-action="credits">Credits</button></footer>`;
 }
 
 /* ---------- Detail sheet ---------- */
@@ -2040,6 +2054,7 @@ function render() {
   renderHeader();
   const v = $('#view');
   v.innerHTML = state.tab === 'bundles' ? bundlesView() : state.tab === 'people' ? peopleView() : state.tab === 'field' ? fieldView() : state.tab === 'howto' ? howtoView() : todayView();
+  v.insertAdjacentHTML('beforeend', creditLine());
   if (state.tab === 'howto') syncNote();
   if (lastQuery) renderResults();
   if (!$('#sheet').hidden && stack.length) $('#sheetBody').innerHTML = detailHtml(IDX.get(stack[stack.length - 1]));
@@ -2075,6 +2090,7 @@ document.addEventListener('click', ev => {
   else if (a === 'askreset') $('#resetBox').innerHTML = `<span class="small">Clear every tick?</span> <button class="btn small danger" data-action="doreset">Yes, clear</button> <button class="btn small ghost" data-action="noreset">Keep them</button>`;
   else if (a === 'doreset') { state.checks = {}; save(); render(); }
   else if (a === 'noreset') render();
+  else if (a === 'credits') { state.tab = 'howto'; $('#q').value = ''; renderResults(); render(); const c = $('#credits'); if (c) c.scrollIntoView({ block: 'start' }); }
 });
 document.addEventListener('change', ev => {
   const t = ev.target;
