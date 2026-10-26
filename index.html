@@ -253,6 +253,26 @@ button.chip:hover { border-color: var(--wood-hi); }
 .heart { color: var(--love); display: inline-flex; }
 .pbday { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
 .ploves { font-size: .82rem; color: var(--ink-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pwhere { display: flex; gap: 6px; align-items: baseline; font-weight: 700; line-height: 1.3; }
+.pwhere .pix { color: var(--acc); flex: none; }
+
+/* schedules */
+.nowbox { display: grid; gap: 2px; border-left-color: var(--acc); }
+.nowbox b { font-size: 1.1rem; line-height: 1.3; }
+.nowbox .pix, h4 .pix { color: var(--acc); }
+.sched-h { display: grid; gap: 2px; margin: 4px 0; }
+.sched { list-style: none; margin: 4px 0 8px; padding: 0; }
+.sched li { display: flex; gap: 10px; align-items: baseline; padding: 5px 8px; border-bottom: 1px dashed var(--paper-line); border-radius: 3px; line-height: 1.35; }
+.sched li:last-child { border-bottom: 0; }
+.sched .when { flex: none; width: 64px; font-weight: 800; font-size: .85rem; color: var(--ink-2); font-variant-numeric: tabular-nums; }
+.sched li.cur { background: color-mix(in srgb, var(--acc) 22%, var(--paper)); border-bottom-color: transparent; font-weight: 700; }
+.sched li.cur .when { color: var(--ink); }
+details.otherdays { margin-top: 10px; border-top: 2px solid var(--paper-line); padding-top: 4px; }
+details.otherdays summary { cursor: pointer; font-weight: 800; padding: 8px 0; }
+.sched-alt { margin: 6px 0 12px; }
+.sched-alt .sched { font-size: .92rem; }
+.segs.times { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); max-width: 420px; }
+.segs.times .seg { padding-inline: 4px; }
 
 /* tables */
 .tablewrap { overflow-x: auto; margin: 4px -4px 0; padding: 0 4px; }
@@ -369,7 +389,7 @@ details.giftrow[open] summary { margin-bottom: 6px; }
     </div>
     <div class="searchwrap">
       <span data-icon="search" data-size="16"></span>
-      <input id="q" type="search" autocomplete="off" spellcheck="false" placeholder="Ask anything: “abigail”, “purple mushroom”, “is pierre open”" aria-label="Search the almanac">
+      <input id="q" type="search" autocomplete="off" spellcheck="false" placeholder="Ask anything: “where is abigail”, “purple mushroom”, “is pierre open”" aria-label="Search the almanac">
       <button class="clearq" data-action="clear" aria-label="Clear search" data-icon="close" data-size="14"></button>
     </div>
   </div>
@@ -1144,6 +1164,338 @@ const GUIDES = [
     steps: ['Lost Books turn up when you dig artifact spots with a hoe, in fishing treasure chests, and when tilling dirt in the Mines.', 'There are 21. Each one goes onto the Museum bookshelves, where you can read it anytime. Many are useful tips.'] },
 ];
 
+/* ---------- Villager schedules ----------
+   Where each villager spends their day, in our own words. Checked against the Schedule sections on
+   stardewvalleywiki.com (Oct 2026). Common cases only: marriage, Ginger Island and Desert Festival days are left out.
+
+   SCHEDULES[name] = list of [when, stops, note?], checked top to bottom; the first match is the plan for the day
+   (two rows with the same `when` are a coin flip: the game picks one).
+   when: space-separated tokens that must all match ('' always matches):
+     Spring/Summer/Fall/Winter (several with '/'), Mon..Sun (several with '/'), d4 or d6/16 (day of the season),
+     rain, cc (Community Center restored), bus (bus fixed), rr (Railroad open), y2 (year 2 or later).
+   stops: 'HMM place|HMM place', 24-hour clock (900 = 9am, 1330 = 1:30pm, 2500 = 1am). Before the first stop they're at home. */
+const SCHEDULES = {
+  Abigail: [
+    ['Spring d4', "900 Her bedroom|1230 Harvey's Clinic, yearly checkup|1600 Her bedroom|2000 Asleep"],
+    ['d6/16', "900 Kitchen at home|1030 Inside Pierre's shop|1500 Mountain lake, southwest shore, playing her flute|2000 Walking home|2140 Home"],
+    ['d11/25', "900 Her bedroom|1030 Walking to Robin's house|1200 Sebastian's room (basement of Robin's house)|1700 Walking home|1850 Her bedroom",
+      "Until someone has 6 hearts with Abigail or Sebastian. After that these are ordinary days."],
+    ['Winter d15', "900 Kitchen at home|1030 Robin's Carpenter's Shop, by the counter|1430 Night Market on the beach|2400 Home"],
+    ['rain', "900 Her bedroom|1100 Inside Pierre's shop|1300 Kitchen at home|1500 Her bedroom|2200 Asleep"],
+    ['rain', "900 Kitchen at home|1100 Inside Pierre's shop|1400 Saloon arcade, on the sofa|2100 Walking home|2200 Asleep"],
+    ['Wed', "1000 Walking to the Museum|1200 Museum library, reading|1800 Graveyard, at a grave|2200 Walking home|2240 Home"],
+    ['Fall Mon', "900 Her bedroom|1100 Beach, end of the long pier west of the Fish Shop|1800 Walking home|1930 Asleep"],
+    ['Fri', "900 Kitchen at home|1100 Inside Pierre's shop|1500 Saloon arcade, on the sofa|2100 Walking home|2140 Home"],
+    ['Sun', "900 Her bedroom|1030 Her parents' bedroom|1300 Outside the Wizard's Tower (Cindersap Forest)|2000 Walking home|2230 Home"],
+    ['Spring', "900 Kitchen at home|1030 Inside Pierre's shop|1300 Bridge by JojaMart|1630 Walking home|1720 Her bedroom, playing video games|1930 Asleep"],
+    ['Summer', "900 Kitchen at home|1100 Train station (north of the Mountain)|1400 Mountain lake, east of Robin's shop|1730 Walking home|1930 Her bedroom, video games|2010 Asleep"],
+    ['Fall', "900 Kitchen at home|1030 Inside Pierre's shop|1300 Bus Stop|1700 Walking home|1830 Her bedroom, video games|1930 Asleep"],
+    ['Winter', "900 Kitchen at home|1030 Robin's Carpenter's Shop, by the counter|1430 Her bedroom, video games|1930 Asleep"],
+  ],
+  Alex: [
+    ['Summer d16', "800 Under the tree by his house|1030 Harvey's Clinic, yearly checkup|1600 Home"],
+    ['Spring/Summer/Fall rain', "800 Front hall of his house|1300 His bedroom, lifting weights|1600 By the dog pen outside|1830 Front hall|2000 His bedroom|2200 Asleep"],
+    ['Wed', "800 Under the tree by his house|1200 Visiting Haley and Emily (2 Willow Lane)|1630 By the dog pen|1840 Front hall|2000 His bedroom|2200 Asleep",
+      'Until someone has 6 hearts with Alex or Haley. After that, Wednesday is an ordinary day.'],
+    ['Spring/Fall', "800 Under the tree by his house, tossing a gridball|1300 His bedroom, lifting weights|1600 By the dog pen|1830 Front hall|2000 His bedroom|2200 Asleep"],
+    ['Summer', "750 The beach|1200 Running the ice cream stand (by the Museum)|1700 His bedroom, lifting weights|1900 Front hall|2000 His bedroom|2200 Asleep"],
+    ['Winter', "800 His bedroom|900 The Spa (north of the Mountain)|1500 His bedroom|1800 By the dog pen|1930 Front hall|2100 His bedroom|2240 Asleep"],
+  ],
+  Caroline: [
+    ['Fall d25', "800 Kitchen at home|1000 Her bedroom|1200 Harvey's Clinic, yearly checkup|1600 Living room|2100 Asleep"],
+    ['Winter d16', "800 Kitchen at home|1200 Shop aisles at Pierre's|1330 Town square|1600 Night Market on the beach|2330 Home"],
+    ['rain', "800 Kitchen at home|1200 Shop aisles at Pierre's|1330 Her bedroom, reading|1600 Living room|2100 Asleep"],
+    ['Tue', "800 Living room|1300 Aerobics class in her living room|1600 Living room, chatting|1810 Kitchen|2100 Asleep"],
+    ['Wed', "800 Kitchen at home|1000 Sunroom, by her tea bush|1200 Fountain west of the Community Center|1700 Living room|2100 Asleep"],
+    ['Fri', "800 Kitchen at home|1000 Sunroom, by her tea bush|1200 Museum, reading|1700 Living room|2100 Asleep"],
+    ['cc Sat', "800 Kitchen at home|1100 Community Center, reading corner of the main room|1700 Living room|2100 Asleep"],
+    ['Sun', "900 Her bedroom|1330 Shop aisles at Pierre's|1440 Under the tree south of the Community Center|1830 Her bedroom|2100 Asleep"],
+    ['', "800 Kitchen at home|1000 Sunroom, by her tea bush|1200 Shop aisles at Pierre's|1330 Town square, chatting with Jodi|1600 Living room|2100 Asleep"],
+  ],
+  Clint: [
+    ['Winter d15', "850 Behind the Blacksmith counter|1700 Night Market on the beach|2400 Home"],
+    ['Winter d16', "900 Behind the Blacksmith counter|1030 Harvey's Clinic, yearly checkup|1600 Stardrop Saloon|2400 Home"],
+    ['rain', "900 Behind the Blacksmith counter|1700 At his anvil|1900 Stardrop Saloon|2400 Home"],
+    ['cc Fri', "850 Community Center boiler room|1700 Stardrop Saloon|2400 Home", 'His shop is closed these days.'],
+    ['', "900 Behind the Blacksmith counter|1700 At his anvil|1900 Stardrop Saloon|2400 Home"],
+  ],
+  Demetrius: [
+    ['Summer d25', "840 Harvey's Clinic, yearly checkup|1600 His bedroom|2200 Asleep"],
+    ['Winter d16', "750 Lab at home, reading the paper|1100 Lab microscope|1500 Behind the Carpenter's Shop counter|1540 Night Market on the beach|2330 Home"],
+    ['rain', "750 Lab at home, reading the paper|1100 Lab microscope|1500 Behind the Carpenter's Shop counter|1540 Lab microscope|1800 Kitchen|2000 His bedroom|2200 Asleep"],
+    ['Fri', "750 Lab microscope|1600 Stardrop Saloon, with Robin|2100 Walking home|2240 Home"],
+    ['Spring', "750 Kitchen at home|1100 Lab microscope|1430 Outside, by his garage|1530 Cliff southeast of his house|1900 Kitchen|2100 His bedroom|2230 Asleep"],
+    ['Summer/Fall', "750 Kitchen at home|1100 Fountain west of the Community Center|1900 Kitchen at home|2100 His bedroom|2230 Asleep"],
+    ['Winter', "750 Lab at home, reading the paper|1100 Lab microscope|1500 Behind the Carpenter's Shop counter|1540 Lab microscope|1800 Kitchen|2000 His bedroom|2200 Asleep"],
+  ],
+  Dwarf: [
+    ['', '600 Their shop in the Mines, just east of the entrance', 'The Dwarf never leaves.'],
+  ],
+  Elliott: [
+    ['Summer d9', "800 Home|1030 Harvey's Clinic, yearly checkup|1600 Home"],
+    ['Winter d12/13', "800 Docks by Willy's Fish Shop|1700 Stardrop Saloon|2400 Home"],
+    ['Winter d17', "800 Home|1130 Museum|1650 Night Market on the beach|2500 Home"],
+    ['Thu', "800 Home|1130 Pierre's shop|1730 Walking home"],
+    ['Fri/Sun', "800 Home|1100 Docks by Willy's Fish Shop|1700 Stardrop Saloon|2340 Walking home",
+      'Until someone has 6 hearts with Leah. After that these are ordinary days.'],
+    ['Spring', "800 Home|1200 Beach south of his cabin|1330 His cabin|1500 Bridge at the top of the beach|1800 Home"],
+    ['Summer', "800 Home|1130 Cindersap Forest, south of Leah's cottage|1800 Walking home|1940 Asleep"],
+    ['Fall/Winter', "800 Home|1130 Museum library|1730 Walking home|1840 Home, by his bonsai"],
+  ],
+  Emily: [
+    ['Fall d15 bus', "900 Her bedroom|1030 Calico Desert, visiting Sandy for her birthday|2400 Home"],
+    ['Winter d11', "900 Her bedroom|1030 Harvey's Clinic, yearly checkup|1600 Working at the Saloon|2430 Home"],
+    ['Winter d15', "900 Her bedroom|1200 Living room|1430 Night Market on the beach|2430 Home"],
+    ['rain', "900 Her bedroom|1200 Living room|1530 Working at the Saloon|2430 Home"],
+    ['Tue', "900 Her bedroom|1000 Pierre's (aerobics class from 1pm)|1600 Working at the Saloon|2430 Home"],
+    ['cc Fri', "900 Her bedroom|1000 Community Center, Crafts Room|1530 Working at the Saloon|2430 Home"],
+    ['', "900 Her bedroom|1200 Living room|1530 Working at the Saloon|2430 Home"],
+  ],
+  Evelyn: [
+    ['Winter d17', "800 Kitchen at home|1040 By the TV with George|1210 Kitchen table|1630 Night Market on the beach|2340 Home"],
+    ['d2', "800 Kitchen at home|1030 Harvey's Clinic, checkup|1600 Kitchen|1900 Living room, by the bookcase|2130 Asleep"],
+    ['d23', "800 Kitchen at home|1040 Harvey's Clinic, with George|1610 Kitchen|1900 Living room, by the bookcase|2130 Asleep"],
+    ['rain', "800 Kitchen at home|1040 By the TV with George|1210 Kitchen table|1630 Kitchen|1900 Living room, by the bookcase|2130 Asleep"],
+    ['cc Mon/Thu/Sat', "800 Kitchen at home|1040 By the TV with George|1210 Community Center, armchair in the Crafts Room|1630 Kitchen|1900 Living room|2130 Asleep"],
+    ['Summer', "800 Kitchen at home|1040 By the TV with George|1210 Kitchen table|1300 Flower beds northwest of the town square|1630 Kitchen|1900 Living room|2130 Asleep"],
+    ['', "800 Kitchen at home|1040 By the TV with George|1210 Kitchen table|1300 Flower beds southeast of the town square|1630 Kitchen|1900 Living room|2130 Asleep"],
+  ],
+  George: [
+    ['Winter d17', "630 Watching TV|1200 Kitchen table|1620 Night Market on the beach|2340 Home"],
+    ['d23', "630 Kitchen table|1030 Harvey's Clinic, checkup (with Evelyn)|1600 Watching TV|2000 Asleep"],
+    ['rain', "630 Watching TV|1200 Kitchen table|1500 Watching TV|2000 Asleep"],
+    ['Summer Fri', "630 Watching TV|1200 Under the tree west of his house|1500 Watching TV|2000 Asleep"],
+    ['Sun', "630 Watching TV|1000 Yoba shrine in the back of Pierre's|1400 Watching TV|2000 Asleep"],
+    ['', "630 Watching TV|1200 Kitchen table|1500 Watching TV|2000 Asleep"],
+  ],
+  Gus: [
+    ['Fall d4', "800 His room at the Saloon|1030 Harvey's Clinic, yearly checkup|1600 Behind the bar|2400 Asleep"],
+    ['rain', "800 His room at the Saloon|1200 Behind the bar|2400 Asleep"],
+    ['Mon', "830 Shopping at Pierre's|1100 Behind the bar|2400 Asleep"],
+    ['cc Tue', "800 His room at the Saloon|830 Community Center kitchen|1230 Behind the bar|2400 Asleep"],
+    ['', "800 His room at the Saloon|1200 Behind the bar|2400 Asleep"],
+  ],
+  Haley: [
+    ['Winter d9', "900 Her bedroom|1130 Harvey's Clinic, yearly checkup|1600 Home"],
+    ['Winter d16', "1030 Her bedroom|1200 Kitchen|1630 Night Market on the beach|2400 Home"],
+    ['rain', "1030 Her bedroom|1200 Kitchen|1600 Her bedroom|1900 Living room|2200 Asleep"],
+    ['Spring/Fall Mon', "900 Her bedroom|1000 Kitchen|1100 River south of Marnie's Ranch, taking photos|1630 Walking home|1750 Kitchen, cooking|2020 Her bedroom|2300 Asleep"],
+    ['Wed', "900 Her bedroom|1210 Living room|1630 Kitchen|2000 Her bedroom|2230 Asleep",
+      'Until someone has 6 hearts with Haley or Alex. After that, Wednesday is an ordinary day.'],
+    ['Spring/Fall', "900 Her bedroom|1100 Fountain west of the Community Center|1630 Walking home|1750 Kitchen, cooking|2020 Her bedroom|2230 Asleep"],
+    ['Summer', "900 Her bedroom|1030 Beach, northwest corner|1330 Alex's ice cream stand, by the Museum|1700 Walking home|1820 Kitchen, cooking|2020 Her bedroom|2300 Asleep"],
+    ['Winter', "1030 Her bedroom|1200 Kitchen|1600 Her bedroom|1900 Living room|2200 Asleep"],
+  ],
+  Harvey: [
+    ['Winter d15', "800 His room above the clinic|840 Clinic front desk|1200 His room, by the radio|1700 Night Market on the beach|2400 Asleep"],
+    ['rain', "800 His room above the clinic|840 Clinic front desk|1200 His room, by the radio|1730 Stardrop Saloon|2200 Asleep"],
+    ['Tue/Thu', "730 Clinic exam room (checkup days)|1630 Clinic front desk|1800 His room above the clinic|2300 Asleep"],
+    ['Fri', "700 His room above the clinic|830 Clinic front desk|1200 Pierre's shop|1500 His room above the clinic|2200 Asleep"],
+    ['Sat', "830 Museum|1500 His room above the clinic"],
+    ['Spring/Summer', "700 His room above the clinic|830 Clinic front desk|1200 Park west of the town square|1730 Clinic front desk|1840 His room|2200 Asleep"],
+    ['Fall', "700 His room above the clinic|830 Clinic front desk|1200 The beach|1700 His room, by the radio|2200 Asleep"],
+    ['Winter', "800 His room above the clinic|840 Clinic front desk|1200 His room, by the radio|1750 Stardrop Saloon|2200 Asleep"],
+  ],
+  Jas: [
+    ['Winter d15', "900 Her bedroom|1100 Big tree west of Marnie's Ranch, jumping rope|1450 Night Market on the beach|2300 Home"],
+    ['Winter d18', "900 Her bedroom|1030 Harvey's Clinic, yearly checkup|1600 Front room of Marnie's shop, reading|2000 Asleep"],
+    ['d9/23', "900 Her bedroom|1100 Big tree west of Marnie's Ranch, jumping rope|1500 Front room of Marnie's shop, reading|1900 Her bedroom|2100 Asleep"],
+    ['rain', "900 Her bedroom|1100 Front room of Marnie's shop|1500 Fireplace room, reading|1900 Her bedroom|2100 Asleep"],
+    ['Tue/Wed/Fri', "900 Museum, lessons with Penny|1400 River southwest of the Museum|1620 Path south of 2 Willow Lane|1750 Walking home"],
+    ['Sat', "1000 Big tree east of 2 Willow Lane|1200 Playground west of the Community Center, jumping rope|1700 Southeast of 2 Willow Lane|2000 Walking home"],
+    ['Summer', "900 Her bedroom|1100 Outside the ranch, watching the cows|1320 The beach, jumping rope|1600 Front room of Marnie's shop, reading|1900 Her bedroom|2100 Asleep"],
+    ['', "900 Her bedroom|1100 Big tree west of Marnie's Ranch, jumping rope|1500 Front room of Marnie's shop, reading|1900 Her bedroom|2100 Asleep"],
+  ],
+  Jodi: [
+    ['Spring d11', "900 Kitchen at home|1130 Harvey's Clinic, with Vincent|1600 Vincent's room|2000 Living room|2200 Asleep"],
+    ['Spring d18', "800 Kitchen at home|1130 Harvey's Clinic, yearly checkup|1600 Kitchen|1930 Living room|2200 Asleep"],
+    ['Winter d17', "900 Kitchen at home|1140 Living room sofa|1400 Outside, north of her house, with Caroline|1630 Night Market on the beach|2330 Home"],
+    ['rain', "800 Kitchen at home|1130 Living room|1600 Kitchen|1930 Living room|2200 Asleep"],
+    ['Tue', "900 Kitchen at home|1010 Pierre's, by the back fireplace (aerobics from 1pm)|1820 Walking home|2200 Asleep"],
+    ['cc Wed/Fri', "900 Kitchen at home|1100 Pierre's shop|1700 Kitchen|2200 Asleep"],
+    ['Wed/Fri', "900 Kitchen at home|1100 JojaMart, shopping|1700 Walking home|1830 Kitchen|2200 Asleep"],
+    ['cc Sat', "800 Kitchen at home|1100 Community Center, main room|1700 Living room|2100 Asleep"],
+    ['Sun', "900 Kitchen at home|1000 Yoba shrine in the back of Pierre's|1600 Walking home|1700 On the sofa at home"],
+    ['', "900 Kitchen at home|1130 Living room|1330 Town square|1600 Kitchen|1930 Living room|2200 Asleep"],
+  ],
+  Kent: [
+    ['y2 rain', "830 Living room|1400 Under the tree just north of his house|1700 Front hall|1900 Kitchen|2100 Under the tree in front of his house|2300 Asleep"],
+    ['y2 Fri/Sat', "700 The beach|1030 Living room|1400 Under the tree just north of his house|1700 Stardrop Saloon|2350 Walking home"],
+    ['y2 Sun', "800 Kitchen at home|1010 Yoba shrine in the back of Pierre's|1400 By Pierre's counter|1600 Front hall at home|1900 Kitchen|2100 Under the tree in front of his house|2300 Asleep"],
+    ['y2', "700 The beach|1030 Living room|1400 Under the tree just north of his house|1700 Front hall|1900 Kitchen|2100 Under the tree in front of his house|2300 Asleep"],
+  ],
+  Krobus: [
+    ['', '600 His shop in the Sewers', 'Krobus never leaves the Sewers. You need the Rusty Key (60 Museum donations) to get in.'],
+  ],
+  Leah: [
+    ['Spring d16', "900 Sculpting in her cottage|1030 Harvey's Clinic, yearly checkup|1600 Stardrop Saloon|2340 Walking home"],
+    ['Winter d15', "900 Sculpting in her cottage|1200 At her easel, painting|1400 By her bookcase|1600 Night Market on the beach|2340 Walking home"],
+    ['rain', "900 Sculpting in her cottage|1200 At her easel, painting|1400 By her bookcase|1600 Stardrop Saloon|2340 Walking home"],
+    ['Mon', "900 Sculpting in her cottage|1100 Shopping at Pierre's|1700 By her bookcase at home|2200 At her table|2400 Asleep"],
+    ['Fri/Sat', "900 Sculpting in her cottage|1200 At her easel, painting|1400 By her bookcase|1600 Stardrop Saloon|2340 Walking home"],
+    ['Spring', "900 Sculpting in her cottage|1200 Riverbank by the little island, southwest of her cottage|1500 End of the pier on the forest pond, drawing|1830 West side of the forest pond|1930 By her bookcase at home|2400 Asleep"],
+    ['Summer/Fall', "900 Sculpting in her cottage|1200 The beach, drawing (at the tide pools once the bridge is fixed)|1900 By her bookcase at home|2200 At her table|2400 Asleep"],
+    ['Winter', "900 Sculpting in her cottage|1200 At her easel, painting|1400 By her bookcase|1600 Stardrop Saloon|2340 Walking home"],
+  ],
+  Leo: [
+    ['d9/23', "630 His treehouse (Mountain)|700 Outside, east of his treehouse|930 West shore of the Mountain lake|1400 East of his treehouse|1900 His treehouse|2200 Asleep"],
+    ['Winter d15', "1100 Outside Linus's tent|1600 Night Market on the beach|2330 Home"],
+    ['rain', "700 His treehouse|1000 Visiting Linus at his tent|1500 East of his treehouse|1900 His treehouse|2200 Asleep"],
+    ['Summer Thu/Fri', "630 Outside his treehouse|940 West shore of the Mountain lake|1300 Southwest shore of the lake|1600 East of his treehouse|2000 His treehouse|2200 Asleep"],
+    ['Fall Thu/Fri', "600 His treehouse|740 East of his treehouse|900 South of the Community Center|1400 West shore of the Mountain lake|2000 His treehouse|2200 Asleep"],
+    ['Winter Thu/Fri', "1100 East of his treehouse|1400 Museum library, reading|2000 His treehouse|2200 Asleep"],
+    ['Mon', "600 His hut on Ginger Island|930 By the parrot perch, Island South|1400 Outside his hut|1700 In his hut|2100 Asleep"],
+    ['Tue/Wed', "600 His treehouse|900 Museum library|1400 South of the Museum|1620 East of his treehouse|2000 His treehouse|2200 Asleep"],
+    ['Sat', "940 Outside Haley and Emily's house (2 Willow Lane)|1200 Playground west of the Community Center|1700 East of his treehouse|1900 His treehouse|2200 Asleep"],
+    ['Sun', "610 Off to Ginger Island|1030 Island South, near the way to Island Southeast|1330 Outside his hut|1700 East of the Island Trader|2000 Asleep in his hut"],
+    ['', "630 His treehouse (Mountain)|700 Outside, east of his treehouse|930 West shore of the Mountain lake|1400 East of his treehouse|1900 His treehouse|2200 Asleep"],
+  ],
+  Lewis: [
+    ['Fall d9', "800 Kitchen at home|1030 Harvey's Clinic, yearly checkup|1700 Stardrop Saloon|2100 Out late"],
+    ['Winter d16', "830 Kitchen at home|1000 His garden|1230 Tree beside Harvey's Clinic|1400 Notice board outside Pierre's|1620 Night Market on the beach|2300 Home"],
+    ['d1', "800 Kitchen at home|1000 Visiting Willy's Fish Shop|1600 Walking home|2200 Asleep"],
+    ['d3/24', "800 Kitchen at home|1000 Visiting Marnie's Ranch|1600 Walking home|2200 Asleep"],
+    ['d6/20', "800 Kitchen at home|1000 Visiting the Blacksmith|1300 Museum|1600 Walking home|2200 Asleep"],
+    ['d15', "800 Kitchen at home|1000 Visiting Robin's Carpenter's Shop|1600 Walking home|2200 Asleep"],
+    ['rain', "830 Kitchen at home|1400 Stardrop Saloon|1940 Walking home|2010 Kitchen at home|2200 Asleep"],
+    ['Summer Sun', "1000 His garden, in front of his house|1300 The beach, on the pier|1650 Home"],
+    ['Fall Sun', "930 His garden, in front of his house|1100 River near Leah's cottage|1600 Walking home|1730 Home|2200 Asleep"],
+    ['Winter Sun', "800 Kitchen at home|1100 Museum|1600 Walking home|2200 Asleep"],
+    ['Tue', "1000 His garden, in front of his house|1130 Pierre's shop|1600 Walking home|1650 Cooking at home|2200 Asleep"],
+    ['Fri', "1000 His garden, in front of his house|1140 Tree outside Harvey's Clinic|1400 By the fountain|2130 Stardrop Saloon|2310 Walking home"],
+    ['cc', "830 Kitchen at home|900 His garden, in front of his house|1040 Community Center, Vault room|1710 Community Center, by the fireplace|1830 Walking home|1940 Kitchen at home"],
+    ['', "830 Kitchen at home|1000 His garden, in front of his house|1140 Tree beside Harvey's Clinic|1400 Notice board outside Pierre's|1600 Walking home|1630 Home|2200 Asleep"],
+  ],
+  Linus: [
+    ['rain', "600 Inside his tent|930 Behind the bush west of his tent|1010 Inside his tent|1500 Under the tree west of his tent|1900 Inside his tent|2330 Asleep"],
+    ['Winter d15', "600 Inside his tent|1100 By his campfire|1600 Night Market on the beach|2330 Back in his tent"],
+    ['Spring', "600 Inside his tent|630 Behind the bush west of his tent|700 By his campfire|930 West shore of the Mountain lake|1400 By his campfire|1900 Inside his tent|2300 Asleep"],
+    ['Summer', "600 Inside his tent|630 Clifftop over the lake, east of his tent|940 West of the lake, south of the fence|1600 By his campfire|2000 Behind the bush west of his tent|2020 Inside his tent"],
+    ['Fall', "600 Inside his tent|700 By his campfire|900 Outside the Spa, east side|1400 West shore of the Mountain lake|1800 Inside his tent"],
+    ['Winter', "600 Inside his tent|1100 By his campfire|1400 Inside the Spa entrance|1800 Inside his tent"],
+  ],
+  Marnie: [
+    ['Fall d18', "600 Her bedroom|1030 Harvey's Clinic, yearly checkup|1600 Walking home|1730 Kitchen at home|2100 Asleep"],
+    ['Winter d16', "600 Her bedroom|900 Behind her shop counter|1600 Night Market on the beach|2340 Home"],
+    ['Winter d18', "900 Her bedroom|1100 Harvey's Clinic, with Jas|1600 Walking home|1800 Kitchen at home|2100 Asleep"],
+    ['rain', "600 Her bedroom|900 Behind her shop counter|1600 Kitchen|1800 Her bedroom|2100 Asleep"],
+    ['Thu', "600 Her bedroom|900 Behind her shop counter|1600 Kitchen|1800 Her bedroom|2100 Asleep"],
+    ['Mon', "600 Her bedroom|810 Shopping at Pierre's|1200 Walking home|1330 Kitchen at home|2100 Asleep", 'Her shop is closed on Mondays.'],
+    ['Tue', "600 Her bedroom|1000 Pierre's (aerobics class from noon)|1810 Walking home|2000 Kitchen at home|2100 Asleep", 'Her shop is closed on Tuesdays.'],
+    ['', "600 Her bedroom|900 Behind her shop counter|1600 Her bedroom|1700 Stardrop Saloon|2300 Walking home"],
+  ],
+  Maru: [
+    ['Winter d16', "900 Her lab at home|1100 Her bedroom|1540 Night Market on the beach|2330 Home"],
+    ['Spring/Summer/Fall rain', "900 Her bedroom|1250 Front of the Carpenter's Shop|1440 Her lab|1640 Her bedroom|2300 Asleep"],
+    ['Tue/Thu', "800 Walking to the clinic|920 Working as a nurse at Harvey's Clinic|1645 Walking home|1830 Kitchen at home|2220 Her bedroom|2400 Asleep"],
+    ['Summer Mon', "900 Her bedroom|1020 Her lab|1330 Beside the Community Center|1830 Walking home|2010 Home"],
+    ['Summer Sun', "900 Her bedroom|1020 Her lab|1230 Her bedroom, with Penny|2300 Asleep"],
+    ['Winter Mon/Sun', "1000 Her lab|1330 Bench north of the graveyard|1830 Walking home|2000 Home"],
+    ['Mon/Sun', "900 Her bedroom|1020 Her lab|1330 Bench in front of the Saloon|1830 Walking home|2030 Her bedroom|2300 Asleep"],
+    ['Summer', "900 Her bedroom|1020 Her lab|1400 Mountain lake, east of her house|1900 Walking home|1940 Outside her house, at her telescope|2400 Asleep"],
+    ['Winter cc', "900 Her lab|1100 Community Center, Crafts Room|1600 Walking home|1740 Her bedroom|2200 Asleep"],
+    ['Winter', "900 Her bedroom|1020 Her lab|1440 Bench by the Community Center|1800 Walking home|1840 Kitchen at home|2200 Her bedroom|2400 Asleep"],
+    ['', "900 Her bedroom|1020 Her lab|1400 Bench east of the Community Center|1800 Walking home|1900 Her bedroom|2200 Asleep"],
+  ],
+  Pam: [
+    ['Spring d25', "800 On the couch in her trailer|1130 Harvey's Clinic, yearly checkup|1600 Stardrop Saloon|2400 Walking home"],
+    ['bus', "800 On the couch in her trailer|830 Walking to the Bus Stop|1000 At the Bus Stop, driving the bus|1700 Stardrop Saloon|2400 Walking home"],
+    ['', "800 On the couch in her trailer|1200 JojaMart|1600 Stardrop Saloon|2400 Walking home"],
+  ],
+  Penny: [
+    ['Winter d4', "900 Her trailer|1130 Harvey's Clinic, yearly checkup|1600 Bridge west of JojaMart|1900 Washing dishes at home|2100 Asleep"],
+    ['Winter d15', "900 Her bedroom|1100 Kitchen in the trailer|1500 On the couch|1600 Night Market on the beach|2350 Asleep"],
+    ['d9/23', "900 Her bedroom|1100 Bridge near the ice cream stand, by the Museum|1600 Washing dishes at home|1840 Asleep",
+      'Until someone has 6 hearts with Penny or Sam. After that: reading by the graveyard, then a bench outside the Saloon with Maru from 4pm.'],
+    ['rain', "900 Her bedroom|1100 Kitchen in the trailer|1500 On the couch, watching TV|1800 Her bedroom, reading|2100 Asleep"],
+    ['rain', "810 Sitting outside the Museum|1200 Museum, by the bookshelves|1600 Watching TV at home|1900 Washing dishes|2100 Asleep"],
+    ['Tue/Wed/Fri', "900 Museum, tutoring Jas and Vincent|1400 Near the ice cream stand, watching the kids|1620 Walking the kids home|1830 Her trailer"],
+    ['Sat', "900 Her bedroom|1000 With Jas and Vincent by the graveyard|1200 Playground, watching the kids|1700 Outside Emily and Haley's house|1830 Walking home"],
+    ['Summer Sun', "800 River above JojaMart|1200 Maru's room at the Carpenter's Shop|1800 Washing dishes at home|2100 Asleep"],
+    ['Summer Mon/Thu', "800 River behind JojaMart|1300 Bench beside the Community Center|1800 Walking home|1900 Her trailer"],
+    ['Winter cc', "900 Her trailer|1030 Community Center, reading|1800 Washing dishes at home|2100 Asleep"],
+    ['', "800 Reading near the graveyard|1230 Washing dishes at home|1600 Bench outside the Saloon, with Maru|1840 Her trailer"],
+  ],
+  Pierre: [
+    ['rain', "600 Behind his shop counter|1700 Shop aisles|1900 Kitchen|2100 His bedroom|2300 Asleep"],
+    ['Fri', "600 Behind his shop counter|1700 Stardrop Saloon, at the bar|2250 Walking home"],
+    ['', "600 Behind his shop counter|1700 Shop aisles|1900 Kitchen|2100 His bedroom|2300 Asleep"],
+  ],
+  Robin: [
+    ['Summer d18', "600 Her bedroom|700 Behind her shop counter|800 Harvey's Clinic, yearly checkup|1600 Walking home|2100 Asleep"],
+    ['Winter d16', "600 Her bedroom|800 Behind her shop counter|1700 Night Market on the beach|2330 Home"],
+    ['rain', "600 Her bedroom|800 Behind her shop counter|1700 Kitchen|1930 Her bedroom|2100 Asleep"],
+    ['cc Mon', "600 Her bedroom|800 Behind her shop counter|1700 Community Center|1930 Walking home|2200 Asleep"],
+    ['Tue', "600 Her bedroom|930 Pierre's (aerobics class from 1pm)|1800 Kitchen at home|1930 Her bedroom|2100 Asleep", 'Her shop is closed on Tuesdays.'],
+    ['Fri', "600 Her bedroom|800 Behind her shop counter|1600 Stardrop Saloon (dancing with Demetrius later)|2100 Walking home"],
+    ['', "600 Her bedroom|800 Behind her shop counter|1700 Out on the Mountain, near her house|1930 Her bedroom|2100 Asleep"],
+  ],
+  Sam: [
+    ['Fall d11', "1000 His bedroom|1130 Harvey's Clinic, yearly checkup|1600 Around town|2100 Asleep"],
+    ['Winter d17', "1000 His bedroom|1040 Playing guitar in his room|1700 Night Market on the beach|2400 Asleep"],
+    ['d9/23', "900 His bedroom|1100 Bridge near the ice cream stand, by the Museum|1600 Pink tree in front of 2 Willow Lane, on his handheld game|1900 Walking home|2130 Asleep",
+      "Until someone has 6 hearts with Sam or Penny. After that: guitar in his room, then near Lewis's house from 1:40pm."],
+    ['rain', "1000 His bedroom|1100 Playing guitar in his room|1500 Kitchen, on his handheld game|1700 His bedroom|2000 Asleep"],
+    ['rain', "1000 His bedroom|1100 Around the house|1400 Stardrop Saloon|1940 Walking home"],
+    ['Mon/Wed', "1000 His bedroom|1100 Working at JojaMart (at the Museum once the Community Center is restored)|1600 Walking home|1800 His bedroom|2130 Asleep"],
+    ['Fri', "1000 Playing guitar in his room|1100 Skateboarding outside his house|1500 Stardrop Saloon, playing pool|2120 Walking home|2220 Home"],
+    ['Sat', "800 Just outside his house|1100 By a bush in town, on his handheld game|1230 His bedroom, jamming with Sebastian|1800 River in front of his house, with Sebastian|1940 Asleep"],
+    ['Summer', "1000 His bedroom|1100 Playing guitar in his room|1340 Beach, by the campfire with Vincent|1900 Walking home|2100 Asleep"],
+    ['Fall/Winter', "1000 His bedroom|1040 Playing guitar in his room|1320 Cindersap Forest, southwest of Leah's cottage|1900 Walking home|2100 Asleep"],
+    ['', "1000 His bedroom|1040 Playing guitar in his room|1340 Near Lewis's house|1830 Walking home|2100 Asleep"],
+  ],
+  Sandy: [
+    ['Fall d15 bus', "900 Behind the Oasis counter|1300 Walking around the desert with Emily|2410 Back at the Oasis", "It's her birthday, and Emily comes to visit."],
+    ['', '900 Behind the Oasis counter (Calico Desert)|2400 Inside the Oasis', 'Sandy never leaves the Oasis. You can reach her once the bus is fixed.'],
+  ],
+  Sebastian: [
+    ['Summer d4', "900 His room|1000 Harvey's Clinic, yearly checkup|1600 Walking home|1800 Asleep"],
+    ['Winter d16', "1030 At his computer|1500 Kitchen|1540 At his computer|1700 Night Market on the beach|2330 Home"],
+    ['d11/25', "900 Asleep|1000 At his computer|1200 His room, hanging out with Abigail|1710 Kitchen|1820 His room|2130 Asleep",
+      'Until someone has 6 hearts with Sebastian or Abigail. After that these are ordinary days.'],
+    ['rain', "900 Asleep|1030 Walking to the beach|1330 Beach, end of the far-west pier|1700 Walking home|1940 Asleep"],
+    ['rain', "900 Asleep|1030 At his computer|1500 Walking to the Saloon|1720 Saloon arcade, by the red sofa|2110 Walking home|2310 Home"],
+    ['rr Thu', "900 Asleep|1030 At his computer|1400 Train station, smoking|1820 East end of the train station, by the tunnel|2010 West end of the train station|2130 Walking home|2220 Home"],
+    ['Fri', "900 Asleep|1030 At his computer|1500 Walking to the Saloon|1720 Saloon, playing pool with Sam|2110 Walking home|2310 Home"],
+    ['Sat', "900 Walking to Sam's house|1130 Outside Emily and Haley's house, with Sam|1230 Sam's room (1 Willow Lane)|1800 River outside Sam's house|1930 Walking home|2140 Home"],
+    ['Fall', "900 Asleep|1030 At his computer|1200 Lake next to his house|1400 Lake shore by the Mines entrance|1530 Lake edge near the bridge, smoking|1600 Kitchen at home|1800 At his computer|2130 Asleep"],
+    ['', "900 Asleep|1030 At his computer|1500 Kitchen|1610 At his computer|1830 Lake next to his house, smoking|2130 Home"],
+  ],
+  Shane: [
+    ['Winter d15', "700 Marnie's Ranch|1100 His room|1500 Night Market on the beach|2300 Home"],
+    ['cc rain', "900 Kitchen at Marnie's|1100 His room|1200 By the fireplace at Marnie's|1400 Stardrop Saloon|2300 Walking home"],
+    ['rain', "710 Working at JojaMart|1700 Stardrop Saloon|2310 Walking home"],
+    ['Sat', "900 Kitchen at Marnie's|1200 Pierre's shop|1700 Stardrop Saloon|2300 Walking home"],
+    ['Sun', "1230 Kitchen at Marnie's|1800 Stardrop Saloon|2400 Walking home"],
+    ['cc', "900 Kitchen at Marnie's|1100 His room|1200 By the fireplace at Marnie's|1400 Stardrop Saloon|2300 Walking home"],
+    ['', "710 Working at JojaMart|1700 Stardrop Saloon|2310 Walking home"],
+  ],
+  Vincent: [
+    ['Spring d11', "900 Home|1130 Harvey's Clinic, yearly checkup|1600 Home, playing|2200 Asleep"],
+    ['Winter d16', "900 Home|1400 Town square|1630 Night Market on the beach|2330 Asleep"],
+    ['d9/23', "900 Home, playing|1400 Town square|1700 Walking home|1900 Home, playing|2200 Asleep"],
+    ['rain', "900 Home, playing inside|2200 Asleep"],
+    ['Tue/Wed/Fri', "900 Museum, lessons with Penny|1400 Around town|1740 Walking home|2200 Asleep"],
+    ['Sat', "1010 Around town|1200 Town square|1700 Around town|2200 Walking home"],
+    ['Summer', "900 Home, playing|1340 The beach|1900 Walking home|2300 Asleep"],
+    ['', "900 Home, playing|1400 Town square|1700 Walking home|1900 Home, playing|2200 Asleep"],
+  ],
+  Willy: [
+    ['Spring d9', "610 Fishing outside his shop|900 Behind his shop counter|1010 Harvey's Clinic, yearly checkup|1700 Stardrop Saloon|2320 Walking home"],
+    ['Summer d20/21', "610 Fishing outside his shop|1000 Trout Derby, on the river in Cindersap Forest|2320 Walking home"],
+    ['Winter d12/13', "610 Fishing outside his shop|850 In his shop|1200 SquidFest, fishing on the beach|2320 Walking home"],
+    ['Winter d15/16/17', "1630 Stardrop Saloon|2420 Home"],
+    ['rain', "610 Fishing outside his shop|850 Behind his shop counter|1700 Stardrop Saloon|2320 Walking home"],
+    ['Fri', "610 Fishing outside his shop|850 Behind his shop counter|1700 Stardrop Saloon|2320 Walking home"],
+    ['Sat', "610 Fishing the river by Leah's cottage|1400 Fishing the river in Pelican Town|1900 Stardrop Saloon|2300 Walking home", 'His shop is closed on Saturdays unless it rains.'],
+    ['Winter', "610 Fishing outside his shop|850 Behind his shop counter|1700 Stardrop Saloon|2320 Walking home"],
+    ['', "610 Fishing outside his shop|850 Behind his shop counter|1700 Fishing on the beach|2200 Walking home"],
+  ],
+  Wizard: [
+    ['', "600 Inside the Wizard's Tower (Cindersap Forest)", 'He never leaves his tower, apart from festivals.'],
+  ],
+};
+
 /* Valley Almanac — data model: index, gift tastes, calendar, search. No DOM in here. */
 
 const SEASON_CODE = { Sp: 'Spring', Su: 'Summer', Fa: 'Fall', Wi: 'Winter' };
@@ -1422,11 +1774,11 @@ function plantable(st) {
 }
 
 /* ---------- Search ---------- */
-const STOP = new Set('a an the is are do does did i im my me to for of in on at it its can could what whats which who whom when where how why should would will with from and or about any some that this there get got find buy catch make give gift gifts love loves like likes favorite favourite best good please tell need want show list day open hours time birthday bday born guy girl lady man woman person thing stuff someone somebody called named name one'.split(' '));
+const STOP = new Set('a an the is are do does did i im my me to for of in on at it its can could what whats which who whom when where how why should would will with from and or about any some that this there get got find buy catch make give gift gifts love loves like likes favorite favourite best good please tell need want show list day open hours time now right currently wher birthday bday born guy girl lady man woman person thing stuff someone somebody called named name one'.split(' '));
 const INTENTS = {
   bday: ['birthday', 'bday', 'born', 'birth'],
   gift: ['love', 'loves', 'like', 'likes', 'gift', 'gifts', 'give', 'present', 'favorite', 'favourite', 'want', 'wants'],
-  where: ['where', 'find', 'get', 'buy', 'catch', 'found', 'obtain', 'source', 'locate', 'sell', 'sells'],
+  where: ['where', 'wher', 'find', 'get', 'buy', 'catch', 'found', 'obtain', 'source', 'locate', 'sell', 'sells'],
   hours: ['open', 'hours', 'close', 'closed', 'closes', 'opens'],
   how: ['how', 'unlock', 'reach', 'access'],
   when: ['when', 'date'],
@@ -1525,6 +1877,83 @@ function suggest(query) {
   return [...IDX.values()].map(e => ({ e, d: dl(q, norm(e.name).replace(/ /g, ''), 4) })).filter(x => x.d <= 4).sort((a, b) => a.d - b.d).slice(0, 4).map(x => x.e);
 }
 
+/* ---------- Villager schedules ---------- */
+const NO_FESTIVAL = ['Dwarf', 'Krobus', 'Sandy', 'Wizard']; // stay put on festival days
+const SCHED_NOTES = {
+  Kent: 'Kent is away with the army in Year 1. He comes home in Spring of Year 2.',
+  Leo: 'Until you reach 6 hearts with him, Leo stays on Ginger Island around his hut. After that he moves into a treehouse on the Mountain and keeps the routine below.',
+  Wizard: 'On festival days he may turn up at the festival.',
+};
+const SCHED_CACHE = new Map();
+function parseStops(str) {
+  return str.split('|').map(s => { const m = s.match(/^(\d+)\s+(.*)$/); const n = +m[1]; return { t: Math.floor(n / 100) + (n % 100) / 60, where: m[2] }; });
+}
+function schedRows(name) {
+  if (!SCHED_CACHE.has(name)) SCHED_CACHE.set(name, (SCHEDULES[name] || []).map(([when, stops, note]) => ({ when, toks: when.split(' ').filter(Boolean), stops: parseStops(stops), note })));
+  return SCHED_CACHE.get(name);
+}
+function fmtClock(t) {
+  const h = Math.floor(t) % 24, m = Math.round((t - Math.floor(t)) * 60);
+  if (!m) return fmtHour(h);
+  return (h % 12 || 12) + ':' + String(m).padStart(2, '0') + (h < 12 ? 'am' : 'pm');
+}
+function railroadOpen(st) { return st.year > 1 || SEASON_IDX[st.season] > 1 || (st.season === 'Summer' && st.day >= 3); }
+function tokOk(tok, st) {
+  if (tok === 'rain') return !!st.rain;
+  if (tok === 'cc') return !!st.ccDone;
+  if (tok === 'bus') return !!st.bus;
+  if (tok === 'rr') return railroadOpen(st);
+  if (tok === 'y2') return st.year >= 2;
+  const parts = tok.replace(/^d/, '').split('/');
+  if (tok[0] === 'd') return parts.map(Number).includes(st.day);
+  if (SEASONS.includes(parts[0])) return parts.includes(st.season);
+  if (WEEKDAYS.includes(parts[0])) return parts.includes(WEEKDAYS[dow(st.day)]);
+  return false;
+}
+/* A readable name for a `when` string: 'Fall Mon' → 'Mondays in Fall'. */
+function whenLabel(when) {
+  const toks = when.split(' ').filter(Boolean);
+  if (!toks.length) return 'Most days';
+  const plural = d => ({ Mon: 'Mondays', Tue: 'Tuesdays', Wed: 'Wednesdays', Thu: 'Thursdays', Fri: 'Fridays', Sat: 'Saturdays', Sun: 'Sundays' }[d]);
+  const list = a => a.length > 1 ? a.slice(0, -1).join(', ') + ' & ' + a[a.length - 1] : a[0];
+  let days = null, seasons = null, dates = null, rain = false, extra = [];
+  for (const t of toks) {
+    const parts = t.replace(/^d(?=\d)/, '').split('/');
+    if (t === 'rain') rain = true;
+    else if (t === 'cc') extra.push('once the Community Center is restored');
+    else if (t === 'bus') extra.push('once the bus is fixed');
+    else if (t === 'rr') extra.push('once the Railroad is open');
+    else if (t === 'y2') extra.push('from Year 2');
+    else if (/^d\d/.test(t)) dates = parts;
+    else if (SEASONS.includes(parts[0])) seasons = parts;
+    else if (WEEKDAYS.includes(parts[0])) days = parts;
+  }
+  let s;
+  if (dates) s = seasons ? list(seasons) + ' ' + list(dates) : 'The ' + list(dates.map(d => d + (d == 1 || d == 21 ? 'st' : d == 2 || d == 22 ? 'nd' : d == 3 || d == 23 ? 'rd' : 'th'))) + ' of every season';
+  else if (days) s = list(days.map(plural)) + (seasons ? ' in ' + list(seasons) : '');
+  else if (seasons) s = list(seasons) + (rain ? '' : ' days');
+  else s = rain ? '' : 'Most days';
+  if (rain) s = s ? 'Rainy days in ' + s.replace(/ days$/, '') : 'Rainy days';
+  return s + (extra.length ? ', ' + extra.join(', ') : '');
+}
+function festivalToday(st) { return FESTIVALS.find(f => f.s === st.season && f.d.includes(st.day) && DAY_FESTIVALS.includes(f.n)); }
+function nightEventToday(st) { return FESTIVALS.find(f => f.s === st.season && f.d.includes(st.day) && ['Dance of the Moonlight Jellies', "Spirit's Eve"].includes(f.n)); }
+/* The plan for one villager on one day: { plans: [rows] (2 = the game picks one), festival, away } */
+function dayPlan(name, st) {
+  const rows = schedRows(name);
+  if (!rows.length) return null;
+  const fest = !NO_FESTIVAL.includes(name) && festivalToday(st);
+  const i = rows.findIndex(r => r.toks.every(t => tokOk(t, st)));
+  if (i < 0) return { plans: [], away: true };
+  return { plans: rows.filter(r => r.when === rows[i].when), festival: fest || null, night: nightEventToday(st) || null };
+}
+/* Where a plan puts someone at hour h: { stop, next } (stop null = still at home, before the first stop). */
+function stopAt(row, h) {
+  let k = -1;
+  row.stops.forEach((s, j) => { if (s.t <= h + 1e-6) k = j; });
+  return { stop: k >= 0 ? row.stops[k] : null, next: row.stops[k + 1] || null, idx: k };
+}
+
 /* Valley Almanac — interface. */
 buildIndex();
 
@@ -1569,7 +1998,7 @@ const $ = s => document.querySelector(s);
 const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const seasonCls = s => 'c-' + s.toLowerCase();
 function ccDone() { return state.ccDone || BUNDLE_ROOMS.every(r => r.bundles.every(bundleDone)); }
-function ctx() { return { season: state.season, day: state.day, year: state.year, rain: state.rain, hour: state.hour, ccDone: ccDone() }; }
+function ctx() { const cc = ccDone(); return { season: state.season, day: state.day, year: state.year, rain: state.rain, hour: state.hour, ccDone: cc, bus: cc || BUNDLE_ROOMS.find(r => r.room === 'Vault').bundles.every(bundleDone) }; }
 function showSpoil(e) { return state.spoilers || !e || !e.spoil; }
 function idFor(name) {
   const it = itemByName(name); if (it) return it.id;
@@ -1607,6 +2036,7 @@ const PIX = {
   close: ['X.....X', '.X...X.', '..X.X..', '...X...', '..X.X..', '.X...X.', 'X.....X'],
   back: ['...X...', '..X....', '.X.....', 'XXXXXXX', '.X.....', '..X....', '...X...'],
   cal: ['.X...X.', 'XXXXXXX', 'X.....X', 'X.X.X.X', 'X.....X', 'X.X.X.X', 'XXXXXXX'],
+  pin: ['.XXX.', 'XXXXX', 'XX.XX', 'XXXXX', '.XXX.', '..X..', '..X..'],
 };
 function pix(name, size = 16) {
   const rows = PIX[name]; const w = rows[0].length, h = rows.length;
@@ -1774,7 +2204,8 @@ function peopleView() {
   let list = VILLAGERS.filter(v => showSpoil({ spoil: v.spoil })).map(v => { const [s, d] = v.b.split(' '); return { v, s, d: +d, until: daysUntil(st, s, +d) }; });
   if (state.people === 'marry') list = list.filter(x => x.v.m);
   if (state.people === 'abc') list.sort((a, b) => a.v.n.localeCompare(b.v.n)); else list.sort((a, b) => a.until - b.until);
-  const filters = [['soon', 'Next birthday'], ['abc', 'A–Z'], ['marry', 'Marriage candidates']].map(([k, l]) => `<button class="seg${state.people === k ? ' on' : ''}" data-people="${k}">${l}</button>`).join('');
+  const filters = [['now', 'Where now'], ['soon', 'Next birthday'], ['abc', 'A–Z'], ['marry', 'Marriage candidates']].map(([k, l]) => `<button class="seg${state.people === k ? ' on' : ''}" data-people="${k}">${l}</button>`).join('');
+  if (state.people === 'now') return `<section class="panel"><div class="room-h"><h2>Villagers</h2></div><div class="segs">${filters}</div>${whereNowList(list.map(x => x.v).sort((a, b) => a.n.localeCompare(b.n)))}</section>`;
   const rows = list.map(({ v, s, d, until }) => {
     const lv = lovedItems(v).names.slice(0, 4);
     return `<li><button class="person" data-open="villager:${slug(v.n)}">
@@ -1784,6 +2215,82 @@ function peopleView() {
     </button></li>`;
   }).join('');
   return `<section class="panel"><div class="room-h"><h2>Villagers</h2></div><div class="segs">${filters}</div><ul class="people">${rows}</ul></section>`;
+}
+
+/* ---------- Schedules ---------- */
+function dayLabel(st) { return `${WEEKDAYS[dow(st.day)]} ${st.season} ${st.day}${st.rain ? ', rain' : ''}`; }
+function festHours(f) {
+  const m = f.time.match(/(\d+)(am|pm)–(\d+)(am|pm)/);
+  const h = (n, ap) => (+n % 12) + (ap === 'pm' ? 12 : 0);
+  return m ? [h(m[1], m[2]), h(m[3], m[4])] : [9, 14];
+}
+/* Where someone is at hour h on the day in st: { where, until, pin } or null when they have no schedule. */
+function whereAt(v, st, h) {
+  const plan = dayPlan(v.n, st);
+  if (!plan) return null;
+  if (plan.away) return { where: 'Away until Year 2', until: '' };
+  if (plan.night && h >= 22 && !NO_FESTIVAL.includes(v.n)) return { where: 'At the ' + plan.night.n + ' (' + plan.night.where + ')', until: '' };
+  if (plan.festival) {
+    const [a, b] = festHours(plan.festival);
+    if (h < a) return { where: 'At home', until: 'heads to the ' + plan.festival.n + ' at ' + fmtHour(a) };
+    if (h < b) return { where: 'At the ' + plan.festival.n + ' (' + plan.festival.where + ')', until: 'until ' + fmtHour(b) };
+    return { where: 'Home after the festival', until: '' };
+  }
+  const spots = plan.plans.map(r => stopAt(r, h));
+  const say = s => !s.stop ? 'At home' : s.stop.where === 'Asleep' ? 'Asleep at home' : s.stop.where;
+  const places = [...new Set(spots.map(say))];
+  const s = spots[0];
+  const until = places.length > 1 ? 'the game picks one plan for the day' : s.next ? (s.stop ? 'until ' : 'leaves at ') + fmtClock(s.next.t) : '';
+  return { where: places.join(' or '), until, home: places.every(p => HOME_SPOT.test(p)) ? v.home.replace(/ \(.*\)$/, '') : '' };
+}
+/* Spots inside their own home, which need the address next to them in a list of everyone. */
+const HOME_SPOT = /^(at home|asleep|home|kitchen|living room|front hall|lab|sunroom|fireplace room|front room|around the house|watching tv|sculpting|on the couch|playing guitar in|washing dishes|(her|his) (bedroom|room$|room,|lab|parents|computer|easel|table|treehouse|tent)|at (his|her) (computer|easel|table)|by (his|her) (bookcase|campfire|garage)|in (his|her) (hut|tent))/i;
+function timeline(row, cur = -2) {
+  return `<ol class="sched">${row.stops.map((s, j) => `<li${j === cur ? ' class="cur"' : ''}><span class="when">${fmtClock(s.t)}</span><span>${esc(s.where)}</span></li>`).join('')}</ol>`;
+}
+function nowBox(v) {
+  const st = ctx();
+  if (!dayPlan(v.n, st)) return '';
+  if (state.hour == null) return `<div class="callout nowbox"><span>${pix('pin', 10)} Where is ${esc(v.n)} now?</span><span class="small muted">Pick a time of day at the top (next to the weather) and this shows where to find them. Their whole day is further down.</span></div>`;
+  const w = whereAt(v, st, state.hour);
+  return `<div class="callout nowbox"><span class="eyebrow">${pix('pin', 10)} ${esc(dayLabel(st))} · ${fmtHour(state.hour)}</span><b>${esc(w.where)}</b>${w.home || w.until ? `<span class="small muted">${esc([w.home && 'at ' + w.home, w.until].filter(Boolean).join(' · '))}</span>` : ''}</div>`;
+}
+function scheduleBlock(v) {
+  const st = ctx(); const plan = dayPlan(v.n, st);
+  if (!plan) return '';
+  const rows = schedRows(v.n);
+  let html = `<h4>${pix('pin', 12)} ${esc(v.n)}'s day</h4>`;
+  if (SCHED_NOTES[v.n]) html += `<p class="small muted">${esc(SCHED_NOTES[v.n])}</p>`;
+  if (plan.away) html += `<div class="callout">Not in the valley yet on ${esc(dayLabel(st))}.</div>`;
+  else {
+    if (plan.festival) html += `<div class="callout good">${esc(dayLabel(st))} is the <b>${esc(plan.festival.n)}</b>. From ${fmtHour(festHours(plan.festival)[0])} they'll be there (${esc(plan.festival.where)}), not following the plan below.</div>`;
+    if (plan.night && !NO_FESTIVAL.includes(v.n)) html += `<div class="callout good">Tonight from 10pm: at the <b>${esc(plan.night.n)}</b> (${esc(plan.night.where)}).</div>`;
+    if (st.season === 'Spring' && [15, 16, 17].includes(st.day) && st.bus) html += `<p class="small muted">Desert Festival days: some villagers ride the bus to the desert for part of the day, so they may not be where this says.</p>`;
+    const two = plan.plans.length > 1;
+    html += `<div class="sched-h"><span class="glabel">Today · ${esc(whenLabel(plan.plans[0].when))}</span>${two ? '<span class="small muted">The game picks one of these two plans each rainy day.</span>' : ''}</div>`;
+    plan.plans.forEach((r, i) => {
+      const cur = state.hour != null && !plan.festival ? stopAt(r, state.hour).idx : -2;
+      html += (two ? `<div class="small"><b>Plan ${'AB'[i]}</b></div>` : '') + timeline(r, cur) + (r.note ? `<p class="small muted">${esc(r.note)}</p>` : '');
+    });
+  }
+  const others = rows.filter(r => !plan.plans.includes(r));
+  if (others.length) {
+    html += `<details class="otherdays"><summary>Other days (${others.length})</summary>${others.map(r => `<div class="sched-alt"><span class="glabel">${esc(whenLabel(r.when))}</span>${timeline(r)}${r.note ? `<p class="small muted">${esc(r.note)}</p>` : ''}</div>`).join('')}
+      <p class="small muted">The first plan in this list that fits the day wins: set dates, then rain, then weekdays, then the season. Two plans with the same label are a coin flip. Before the first time shown, they're at home. Marriage, Ginger Island trips and Desert Festival days aren't covered.</p></details>`;
+  }
+  return html;
+}
+function whereNowList(vs) {
+  const st = ctx(); const h = state.hour;
+  const times = [[9, '9am'], [12, 'Noon'], [15, '3pm'], [18, '6pm'], [21, '9pm']];
+  const pick = `<div class="segs times" role="group" aria-label="Time of day">${times.map(([t, l]) => `<button class="seg${h === t ? ' on' : ''}" data-sethour="${t}">${l}</button>`).join('')}</div>`;
+  if (h == null) return `<p>Where is everyone on <b>${esc(dayLabel(st))}</b>? Pick a time:</p>${pick}<p class="small muted">This sets the time at the top too, so fish and shop hours follow it.</p>`;
+  const fest = festivalToday(st);
+  const rows = vs.map(v => {
+    const w = whereAt(v, st, h);
+    return `<li><button class="person" data-open="villager:${slug(v.n)}"><span class="pname">${esc(v.n)}</span><span class="pwhere">${pix('pin', 10)}<span>${esc(w.where)}</span></span>${w.home || w.until ? `<span class="ploves">${esc([w.home && 'home: ' + w.home, w.until].filter(Boolean).join(' · '))}</span>` : ''}</button></li>`;
+  }).join('');
+  return `<p class="small"><b>${esc(dayLabel(st))} · ${fmtHour(h)}</b>${fest ? ` · ${esc(fest.n)} today` : ''}. Change the day, weather or time at the top to check another moment.</p>${pick}<ul class="people">${rows}</ul>`;
 }
 
 /* ---------- Field guide ---------- */
@@ -1836,7 +2343,7 @@ function howtoView() {
     <p class="muted small" id="syncNote"></p>
   </section>
   <section class="panel credits" id="credits"><h3>About &amp; credits</h3>
-    <p class="small"><b>Game facts</b> come from the <a href="https://stardewvalleywiki.com" target="_blank" rel="noopener">Stardew Valley Wiki</a>, written by its community of editors. Gift tastes, bundles, fish, crops, recipes and festival details were checked there for version 1.6, then condensed and reworded for this almanac. Wiki content is shared under <a href="https://creativecommons.org/licenses/by-nc-sa/3.0/" target="_blank" rel="noopener">CC BY-NC-SA 3.0</a>, so this almanac is shared under the same license: free and non-commercial.</p>
+    <p class="small"><b>Game facts</b> come from the <a href="https://stardewvalleywiki.com" target="_blank" rel="noopener">Stardew Valley Wiki</a>, written by its community of editors. Gift tastes, villager schedules, bundles, fish, crops, recipes and festival details were checked there for version 1.6, then condensed and reworded for this almanac. Wiki content is shared under <a href="https://creativecommons.org/licenses/by-nc-sa/3.0/" target="_blank" rel="noopener">CC BY-NC-SA 3.0</a>, so this almanac is shared under the same license: free and non-commercial.</p>
     <p class="small"><b>Stardew Valley</b> is made by ConcernedApe (Eric Barone). This is an unofficial fan guide, not affiliated with or endorsed by ConcernedApe.</p>
     <p class="small"><b>Fonts:</b> Pixelify Sans and Nunito, from Google Fonts, under the SIL Open Font License.</p>
   </section>`;
@@ -1895,11 +2402,13 @@ function detailHtml(e) {
     return head(v.m ? 'Villager · marriage candidate' : 'Villager') + `
       <div class="facts"><div><span>Birthday</span><b>${esc(v.b)}</b> <span class="pill${until === 0 ? ' hot' : until <= 3 ? ' warn' : ' soft'}">${until === 0 ? 'Today!' : relDays(until)}</span></div><div><span>Lives</span><b>${esc(v.home)}</b></div></div>
       <p>${esc(v.who)}</p>
+      ${nowBox(v)}
       <h4>${pix('heart', 12)} Loves</h4><div class="chips">${lv.names.map(n => chip(n, { mark: 1, cls: 'love' })).join('')}${lv.cats.map(c => `<span class="chip plain love">${esc(c)}</span>`).join('')}</div>
       ${uni.length ? `<p class="muted small">Also loves the universal favorites: ${uni.map(n => esc(n)).join(', ')}.</p>` : ''}
       <h4>Likes</h4><div class="chips">${lk.names.map(n => chip(n, { mark: 1 })).join('')}${lk.cats.map(c => `<span class="chip plain">${esc(c)}</span>`).join('')}${!lk.names.length && !lk.cats.length ? '<span class="muted">Nothing special.</span>' : ''}</div>
       ${avoid.length || avoidCats.length ? `<h4>Don't give</h4><div class="chips">${avoid.map(n => chip(n, { cls: 'bad' })).join('')}${avoidCats.map(c => `<span class="chip plain bad">${esc(c)}</span>`).join('')}</div>` : ''}
-      <p class="muted small">You can give 2 gifts a week, plus one on their birthday (worth 8×). Items with a dot are in season now.</p>`;
+      <p class="muted small">You can give 2 gifts a week, plus one on their birthday (worth 8×). Items with a dot are in season now.</p>
+      ${scheduleBlock(v)}`;
   }
   if (e.type === 'person') return head('Character') + `<p>${esc(e.who)}</p>`;
   if (e.type === 'festival') {
@@ -1992,7 +2501,10 @@ function answerCard(e, intents) {
     const v = e.v; const [s, d] = v.b.split(' '); const u = daysUntil(st, s, +d);
     const bd = `<p class="big">Birthday <b>${esc(v.b)}</b> · ${u === 0 ? '<b>today!</b>' : relDays(u)}</p>`;
     const loves = `<div class="chips">${lovedItems(v).names.map(n => chip(n, { mark: 1, cls: 'love' })).join('')}</div>`;
-    body = intents.has('bday') ? bd + `<p class="small muted">Loves:</p>` + loves : `<p class="small muted">Loves:</p>${loves}${bd}`;
+    const w = state.hour != null && whereAt(v, st, state.hour);
+    const now = w ? `<p class="big">${pix('pin', 12)} ${fmtHour(state.hour)}: <b>${esc(w.where)}</b></p>` : '';
+    body = intents.has('where') ? now + `<p class="small muted">Loves:</p>` + loves + bd : intents.has('bday') ? bd + `<p class="small muted">Loves:</p>` + loves + now : `<p class="small muted">Loves:</p>${loves}${bd}${now}`;
+    if (!w && intents.has('where') && dayPlan(v.n, st)) body += `<p class="small muted">Pick a time at the top to see where ${esc(v.n)} is. Their whole day is on their page.</p>`;
   } else if (e.type === 'shop') {
     const r = shopStatus(e.shop, st);
     body = `<p class="big"><b class="${r.closed ? 'bad' : 'good'}">${r.closed ? esc(r.why) : 'Open · ' + esc(r.why)}</b></p><p class="small">${esc(e.shop.hours)} · Closed ${esc(e.shop.closed.toLowerCase())}</p>`;
@@ -2055,13 +2567,18 @@ function askBox(q) {
   return `<div class="askbox"><button class="btn" data-action="ask">Ask Claude: “${esc(q.length > 60 ? q.slice(0, 57) + '…' : q)}”</button><div id="askOut" class="askout" hidden></div></div>`;
 }
 function factsFor(e) {
-  if (e.type === 'villager') { const v = e.v; return `${v.n} (villager): birthday ${v.b}; lives ${v.home}; ${v.who} Loves: ${v.love.replace(/;/g, ', ')}. Likes: ${v.like.replace(/;/g, ', ')}. Hates: ${v.hate.replace(/;/g, ', ') || 'nothing special'}.`; }
+  if (e.type === 'villager') { const v = e.v; return `${v.n} (villager): birthday ${v.b}; lives ${v.home}; ${v.who} Loves: ${v.love.replace(/;/g, ', ')}. Likes: ${v.like.replace(/;/g, ', ')}. Hates: ${v.hate.replace(/;/g, ', ') || 'nothing special'}.${schedFacts(v)}`; }
   if (e.type === 'shop') return `${e.name} (shop): ${e.shop.hours}; closed ${e.shop.closed}; ${e.shop.where}; sells ${e.shop.sells}`;
   if (e.type === 'festival') return `${e.name} (festival): ${e.f.s} ${e.f.d.join(', ')}, ${e.f.where}, ${e.f.time}. ${e.f.what} ${e.f.tip}`;
   if (e.type === 'guide') return `How-to "${e.name}": ${e.g.steps.join(' ')} ${e.g.tip || ''}`;
   if (e.type === 'bundle') return `${e.name} (${e.b.room}): needs ${e.b.need} of ${e.b.items.map(i => i.name + (i.qty > 1 ? ' x' + i.qty : '')).join(', ')}; reward ${e.b.reward}.`;
   const w = whoLikes(e.name);
   return `${e.name} (${TYPE_LABEL[e.type]}): ${e.src || ''} Seasons: ${e.seasons ? e.seasons.join('/') : 'any'}. Sells ${e.sell || '?'}g. Loved by: ${w.love.join(', ') || 'nobody in particular'}. Bundles: ${bundleUses(e.name).map(u => u.bundle.n).join(', ') || 'none'}.`;
+}
+function schedFacts(v) {
+  const st = ctx(); const p = dayPlan(v.n, st);
+  if (!p || p.away) return '';
+  return ` Today's plan (${whenLabel(p.plans[0].when)}${p.plans.length > 1 ? ', one of two at random' : ''}): ` + p.plans.map(r => r.stops.map(s => fmtClock(s.t) + ' ' + s.where).join('; ')).join(' OR ') + (p.festival ? ` (but today is the ${p.festival.n})` : '') + '.';
 }
 async function ask() {
   const out = $('#askOut'); if (!out || !sampleFn) return;
@@ -2124,7 +2641,7 @@ function render() {
 
 /* ---------- Events ---------- */
 document.addEventListener('click', ev => {
-  const t = ev.target.closest('[data-open],[data-action],[data-tab],[data-setday],[data-people],[data-field],[data-fseason],[data-pseason]');
+  const t = ev.target.closest('[data-open],[data-action],[data-tab],[data-setday],[data-people],[data-sethour],[data-field],[data-fseason],[data-pseason]');
   if (!t) return;
   if (t.dataset.open) { openDetail(t.dataset.open); return; }
   if (t.dataset.tab) { state.tab = t.dataset.tab; $('#q').value = ''; renderResults(); save(true); render(); window.scrollTo({ top: 0 }); return; }
@@ -2134,6 +2651,7 @@ document.addEventListener('click', ev => {
     save(); render(); return;
   }
   if (t.dataset.people) { state.people = t.dataset.people; save(true); render(); return; }
+  if (t.dataset.sethour) { state.hour = +t.dataset.sethour; save(); render(); return; }
   if (t.dataset.field) { state.field = t.dataset.field; save(true); render(); return; }
   if (t.dataset.fseason) { state.fieldSeason = t.dataset.fseason === state.season ? null : t.dataset.fseason; render(); return; }
   if (t.dataset.pseason) { pk.season = t.dataset.pseason; renderPicker(); return; }
